@@ -16,6 +16,8 @@
 		android:paddingBottom="16dp"
 		android:verticalSpacing="16dp"
 		app:focusOutFront="true"
+		app:focusOutSideEnd="false"
+		app:focusOutSideStart="false"
 		app:layout_constraintBottom_toBottomOf="parent"
 		app:layout_constraintTop_toTopOf="parent"
 		tools:listitem="@layout/tv_fragment_channel_list_item" />
