@@ -101,6 +101,21 @@
 	</PreferenceCategory>
 
 	<PreferenceCategory
+		android:icon="@drawable/ic_live_tv_white_24dp"
+		android:title="@string/pref_header_zattoo">
+
+		<EditTextPreference
+			android:key="@string/pref_key_zattoo_username"
+			android:title="@string/pref_zattoo_username_title"
+			app:useSimpleSummaryProvider="true" />
+
+		<EditTextPreference
+			android:key="@string/pref_key_zattoo_password"
+			android:title="@string/pref_zattoo_password_title" />
+
+	</PreferenceCategory>
+
+	<PreferenceCategory
 		android:icon="@drawable/ic_outline_save_24"
 		android:title="@string/pref_header_data">
 

@@ -189,4 +189,9 @@
 	<string name="notification_download_complete">Download abgeschlossen</string>
 	<string name="notification_download_failed">Download fehlgeschlagen</string>
 
+	<!-- Zattoo -->
+	<string name="pref_header_zattoo">Zattoo</string>
+	<string name="pref_zattoo_username_title">Benutzername</string>
+	<string name="pref_zattoo_password_title">Passwort</string>
+
 </resources>

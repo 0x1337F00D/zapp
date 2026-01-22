@@ -8,6 +8,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.RecyclerView
 import de.christinecoenen.code.zapp.app.livestream.ui.ProgramInfoViewModel
 import de.christinecoenen.code.zapp.models.channels.ChannelModel
+import coil.load
 import de.christinecoenen.code.zapp.utils.system.LifecycleOwnerHelper.launchOnCreated
 import kotlinx.coroutines.Job
 import kotlin.math.roundToInt
@@ -117,7 +118,13 @@ class ChannelViewHolder(
 	}
 
 	private fun setViewToChannel(channel: ChannelModel) {
-		bindingAdapter.logo.setImageResource(channel.drawableId)
+		if (channel.logoUrl != null) {
+			bindingAdapter.logo.load(channel.logoUrl) {
+				crossfade(true)
+			}
+		} else {
+			bindingAdapter.logo.setImageResource(channel.drawableId)
+		}
 		bindingAdapter.logo.contentDescription = channel.name
 
 		bindingAdapter.subtitle.text = channel.subtitle

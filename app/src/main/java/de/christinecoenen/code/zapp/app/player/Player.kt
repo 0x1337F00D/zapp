@@ -20,6 +20,7 @@ import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.app.player.VideoInfoArtworkExtensions.getArtworkByteArray
 import de.christinecoenen.code.zapp.app.settings.repository.SettingsRepository
 import de.christinecoenen.code.zapp.app.settings.repository.StreamQualityBucket
+import de.christinecoenen.code.zapp.app.zattoo.ZattooService
 import de.christinecoenen.code.zapp.utils.system.NetworkConnectionHelper
 import de.christinecoenen.code.zapp.utils.video.ScreenDimmingHandler
 import kotlinx.coroutines.CoroutineScope
@@ -38,7 +39,8 @@ class Player(
 	private val context: Context,
 	private val applicationScope: CoroutineScope,
 	httpClient: OkHttpClient,
-	private val playbackPositionRepository: IPlaybackPositionRepository
+	private val playbackPositionRepository: IPlaybackPositionRepository,
+	private val zattooService: ZattooService
 ) {
 
 	companion object {
@@ -147,8 +149,19 @@ class Player(
 			return@withContext
 		}
 
+		var infoToLoad = videoInfo
+		if (infoToLoad.url.startsWith("zattoo://")) {
+			val zattooId = infoToLoad.url.removePrefix("zattoo://")
+			try {
+				val streamUrl = zattooService.getStreamUrl(zattooId)
+				infoToLoad = infoToLoad.copy(url = streamUrl, urlHighestQuality = streamUrl, urlLowestQuality = streamUrl)
+			} catch (e: Exception) {
+				Timber.e(e, "Failed to resolve Zattoo stream")
+			}
+		}
+
 		playerEventHandler.errorResourceId.emit(-1)
-		currentVideoInfo = videoInfo
+		currentVideoInfo = infoToLoad
 
 		loadStreamQualityByNetworkType()
 	}
