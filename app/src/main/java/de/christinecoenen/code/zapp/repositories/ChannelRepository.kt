@@ -116,6 +116,10 @@ class ChannelRepository(
 			}
 		}
 
+		tryLoadZattooChannels()
+	}
+
+	fun tryLoadZattooChannels() {
 		scope.launch(Dispatchers.IO) {
 			try {
 				val zattooChannels = zattooService.getChannels()
