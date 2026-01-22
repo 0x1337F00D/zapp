@@ -20,6 +20,16 @@ android {
 		resourceConfigurations += ['de', 'en']
 	}
 
+	flavorDimensions "platform"
+	productFlavors {
+		mobile {
+			dimension "platform"
+		}
+		tv {
+			dimension "platform"
+		}
+	}
+
 	compileOptions {
 		sourceCompatibility JavaVersion.VERSION_17
 		targetCompatibility JavaVersion.VERSION_17
