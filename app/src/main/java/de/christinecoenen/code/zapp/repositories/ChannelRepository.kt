@@ -22,7 +22,7 @@ import java.io.IOException
 @SuppressLint("CheckResult")
 class ChannelRepository(
 	private val context: Context,
-	scope: CoroutineScope,
+	private val scope: CoroutineScope,
 	private val zappApi: IZappBackendApiService,
 	private val zattooService: ZattooService
 ) {
