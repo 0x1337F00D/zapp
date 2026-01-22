@@ -18,7 +18,8 @@ data class VideoInfo(
 	var subtitleUrl: String? = null,
 	var filePath: String? = null,
 	var hasDuration: Boolean = false,
-	@DrawableRes var artworkVectorDrawableResId: Int = 0
+	@DrawableRes var artworkVectorDrawableResId: Int = 0,
+	var artworkUrl: String? = null
 ) : Serializable {
 
 	companion object {
@@ -50,6 +51,7 @@ data class VideoInfo(
 				url = channel.streamUrl
 				hasDuration = false
 				artworkVectorDrawableResId = channel.drawableId
+				artworkUrl = channel.logoUrl
 			}
 		}
 
@@ -63,7 +65,7 @@ data class VideoInfo(
 		get() = filePath != null
 
 	val hasArtwork: Boolean
-		get() = artworkVectorDrawableResId != 0
+		get() = artworkVectorDrawableResId != 0 || artworkUrl != null
 
 	fun getPlaybackUrlOrFilePath(quality: StreamQualityBucket): String {
 		return if (isOfflineVideo) {

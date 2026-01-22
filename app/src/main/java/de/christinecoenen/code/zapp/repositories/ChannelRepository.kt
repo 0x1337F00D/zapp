@@ -6,13 +6,16 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import de.christinecoenen.code.zapp.app.livestream.api.IZappBackendApiService
 import de.christinecoenen.code.zapp.app.livestream.api.model.ChannelInfo
+import de.christinecoenen.code.zapp.app.zattoo.ZattooService
+import de.christinecoenen.code.zapp.models.channels.ChannelModel
+import de.christinecoenen.code.zapp.models.channels.CombinedChannelList
 import de.christinecoenen.code.zapp.models.channels.ISortableChannelList
-import de.christinecoenen.code.zapp.models.channels.json.SortableVisibleJsonChannelList
 import de.christinecoenen.code.zapp.utils.io.IoUtils.readAllText
 import de.christinecoenen.code.zapp.utils.io.IoUtils.writeAllText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.IOException
 
@@ -20,7 +23,8 @@ import java.io.IOException
 class ChannelRepository(
 	private val context: Context,
 	scope: CoroutineScope,
-	private val zappApi: IZappBackendApiService
+	private val zappApi: IZappBackendApiService,
+	private val zattooService: ZattooService
 ) {
 
 	companion object {
@@ -30,7 +34,7 @@ class ChannelRepository(
 	}
 
 	private val gson = Gson()
-	private val channelList: ISortableChannelList = SortableVisibleJsonChannelList(context)
+	private val channelList: CombinedChannelList = CombinedChannelList(context)
 	private var channelInfoList: Map<String, ChannelInfo> = emptyMap()
 
 	fun getChannelList(): ISortableChannelList {
@@ -109,6 +113,30 @@ class ChannelRepository(
 				}
 			}?.let {
 				onChannelInfoListSuccess(it)
+			}
+		}
+
+		scope.launch(Dispatchers.IO) {
+			try {
+				val zattooChannels = zattooService.getChannels()
+				val models = zattooChannels.map { zChannel ->
+					ChannelModel(
+						id = "zattoo_" + zChannel.cid,
+						name = zChannel.title,
+						subtitle = null,
+						streamUrl = "zattoo://" + zChannel.cid,
+						drawableId = de.christinecoenen.code.zapp.R.drawable.ic_live_tv_white_24dp,
+						color = 0,
+						logoUrl = "https://logos.zattic.com" + (zChannel.qualities.firstOrNull()?.logoUrl ?: ""),
+						zattooId = zChannel.cid
+					)
+				}
+				withContext(Dispatchers.Main) {
+					channelList.setExtraChannels(models)
+					applyToChannelList(channelInfoList)
+				}
+			} catch (e: Exception) {
+				Timber.e(e, "Failed to load Zattoo channels")
 			}
 		}
 	}

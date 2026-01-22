@@ -23,6 +23,7 @@ import de.christinecoenen.code.zapp.app.player.PersistedPlaybackPositionReposito
 import de.christinecoenen.code.zapp.app.player.Player
 import de.christinecoenen.code.zapp.app.search.SearchViewModel
 import de.christinecoenen.code.zapp.app.settings.repository.SettingsRepository
+import de.christinecoenen.code.zapp.app.zattoo.ZattooService
 import de.christinecoenen.code.zapp.models.channels.json.JsonChannelList
 import de.christinecoenen.code.zapp.persistence.Database
 import de.christinecoenen.code.zapp.repositories.ChannelRepository
@@ -53,7 +54,9 @@ class KoinModules {
 
 			single { Markwon.create(androidContext()) }
 
-			single { ChannelRepository(androidContext(), get(), get()) }
+			single { ZattooService(androidContext(), get()) }
+
+			single { ChannelRepository(androidContext(), get(), get(), get()) }
 			single { Database.getInstance(androidContext()) }
 			single { MediathekRepository(get()) }
 			single { SearchRepository(get()) }
@@ -77,7 +80,7 @@ class KoinModules {
 			single { DownloadFileInfoManager(get(), get()) }
 
 			factory { SettingsRepository(androidContext()) }
-			factory { Player(androidContext(), get(), get(), get()) }
+			factory { Player(androidContext(), get(), get(), get(), get()) }
 			factory { JsonChannelList(androidContext()) }
 
 			viewModel { AbstractPlayerActivityViewModel(get()) }

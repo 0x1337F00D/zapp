@@ -19,11 +19,13 @@ import de.christinecoenen.code.zapp.app.main.MainActivity
 import de.christinecoenen.code.zapp.databinding.ChannelListFragmentBinding
 import de.christinecoenen.code.zapp.models.channels.ChannelModel
 import de.christinecoenen.code.zapp.models.channels.ISortableChannelList
-import de.christinecoenen.code.zapp.models.channels.json.SortableVisibleJsonChannelList
+import de.christinecoenen.code.zapp.repositories.ChannelRepository
 import de.christinecoenen.code.zapp.utils.view.GridAutofitLayoutManager
+import org.koin.android.ext.android.inject
 
 class ChannelListFragment : Fragment(), MenuProvider, ListItemListener {
 
+	private val channelRepository: ChannelRepository by inject()
 	private lateinit var channelList: ISortableChannelList
 	private lateinit var gridAdapter: BaseChannelListAdapter
 
@@ -31,7 +33,7 @@ class ChannelListFragment : Fragment(), MenuProvider, ListItemListener {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 
-		channelList = SortableVisibleJsonChannelList(requireContext())
+		channelList = channelRepository.getChannelList()
 		gridAdapter = ChannelListAdapter(channelList, this, this)
 	}
 

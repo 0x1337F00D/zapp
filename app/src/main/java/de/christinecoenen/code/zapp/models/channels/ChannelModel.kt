@@ -11,7 +11,9 @@ data class ChannelModel(
 	var streamUrl: String,
 	val drawableId: Int,
 	val color: Int,
-	var isEnabled: Boolean = true
+	var isEnabled: Boolean = true,
+	var logoUrl: String? = null,
+	var zattooId: String? = null
 
 ) : Serializable {
 
