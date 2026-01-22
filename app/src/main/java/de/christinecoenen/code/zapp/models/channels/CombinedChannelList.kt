@@ -6,7 +6,7 @@ import de.christinecoenen.code.zapp.models.channels.json.SortableVisibleJsonChan
 
 class CombinedChannelList(context: Context) : SortableVisibleJsonChannelList(context) {
 
-    private var extraChannels: List<ChannelModel> = emptyList()
+    private var extraChannels: List<ChannelModel>? = null
 
     fun setExtraChannels(channels: List<ChannelModel>) {
         extraChannels = channels
@@ -15,7 +15,7 @@ class CombinedChannelList(context: Context) : SortableVisibleJsonChannelList(con
 
     override fun loadSortingFromDisk() {
         val listFromDisk = JsonChannelList(context).list
-        val allChannels = listFromDisk + extraChannels
+        val allChannels = listFromDisk + (extraChannels ?: emptyList())
 
         val sortedChannels = channelOrderHelper.sortChannelList(allChannels, true)
         channelList = SimpleChannelList(sortedChannels)
