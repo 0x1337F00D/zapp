@@ -23,7 +23,19 @@ jobs:
         cache: 'gradle'
 
     - name: Build and test with Gradle
-      run: ./gradlew buildRelease testRelease -Pci
+      run: ./gradlew assembleMobileRelease assembleTvRelease testMobileRelease testTvRelease -Pci
+
+    - name: Upload Mobile APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: zapp-mobile-release
+        path: app/build/outputs/apk/mobile/release/*.apk
+
+    - name: Upload TV APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: zapp-tv-release
+        path: app/build/outputs/apk/tv/release/*.apk
 
     - name: Cleanup Gradle Cache
       # Remove some files from the Gradle cache, so they aren't cached by GitHub Actions.
