@@ -38,18 +38,6 @@ android {
 		compose = true
 	}
 
-	flavorDimensions "device"
-	productFlavors {
-		universal {
-			dimension "device"
-		}
-		tv {
-			dimension "device"
-			applicationIdSuffix ".tv"
-			versionNameSuffix "-tv"
-		}
-	}
-
 	buildTypes {
 		debug {
 			shrinkResources false
