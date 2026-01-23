@@ -1,6 +1,8 @@
 package de.christinecoenen.code.zapp.app.zattoo
 
 import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.app.settings.repository.SettingsRepository
 import de.christinecoenen.code.zapp.app.zattoo.api.ZattooApi
@@ -108,12 +110,16 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
     }
 
     private fun fetchAppToken(): String {
-        val request = Request.Builder().url("https://zattoo.com/").build()
+        val uuid = UUID.randomUUID().toString()
+        val request = Request.Builder().url("https://zattoo.com/client/token.json?id=$uuid").build()
         val response = httpClient.newCall(request).execute()
-        val html = response.body?.string() ?: throw Exception("Failed to load Zattoo")
+        val json = response.body?.string() ?: throw Exception("Failed to load Zattoo token")
 
-        val regex = "window\\.appToken\\s*=\\s*'([^']+)'".toRegex()
-        val match = regex.find(html)
-        return match?.groupValues?.get(1) ?: throw Exception("App Token not found")
+        val jsonObject = Gson().fromJson(json, JsonObject::class.java)
+        if (jsonObject.has("session_token")) {
+            return jsonObject.get("session_token").asString
+        } else {
+            throw Exception("App Token not found")
+        }
     }
 }
