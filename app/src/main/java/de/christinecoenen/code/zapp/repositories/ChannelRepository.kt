@@ -153,7 +153,11 @@ class ChannelRepository(
 
 	suspend fun checkZattooLogin(): Boolean = withContext(ioDispatcher) {
 		zattooService.logout()
-		val channels = zattooService.getChannels()
-		return@withContext channels.isNotEmpty()
+		try {
+			val channels = zattooService.getChannels()
+			return@withContext channels.isNotEmpty()
+		} catch (e: Exception) {
+			return@withContext false
+		}
 	}
 }

@@ -80,15 +80,6 @@ class MediathekListFragment : Fragment(),
 			}
 		}
 
-		binding.list.setOnKeyListener { _, keyCode, event ->
-			if (event.action == KeyEvent.ACTION_DOWN) {
-				if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-					return@setOnKeyListener true
-				}
-			}
-			false
-		}
-
 		binding.search.setOnEditorActionListener { _, actionId, _ ->
 			if (actionId == EditorInfo.IME_ACTION_SEARCH) {
 				val inputMethodManager =
