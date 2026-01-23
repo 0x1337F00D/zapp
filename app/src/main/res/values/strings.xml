@@ -193,5 +193,8 @@
 	<string name="pref_header_zattoo">Zattoo</string>
 	<string name="pref_zattoo_username_title">Benutzername</string>
 	<string name="pref_zattoo_password_title">Passwort</string>
+	<string name="pref_zattoo_check_title">Login prüfen</string>
+	<string name="zattoo_login_success">Login erfolgreich</string>
+	<string name="zattoo_login_error">Login fehlgeschlagen</string>
 
 </resources>

@@ -18,5 +18,6 @@
 	<string name="pref_key_start_tab">pref_key_start_tab</string>
 	<string name="pref_key_zattoo_username">pref_key_zattoo_username</string>
 	<string name="pref_key_zattoo_password">pref_key_zattoo_password</string>
+	<string name="pref_key_zattoo_check">pref_key_zattoo_check</string>
 
 </resources>

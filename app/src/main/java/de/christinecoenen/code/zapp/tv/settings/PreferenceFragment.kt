@@ -2,11 +2,14 @@ package de.christinecoenen.code.zapp.tv.settings
 
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.widget.Toast
 import androidx.leanback.preference.LeanbackPreferenceFragmentCompat
+import androidx.lifecycle.lifecycleScope
 import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.app.settings.repository.SettingsRepository
 import de.christinecoenen.code.zapp.repositories.ChannelRepository
 import de.christinecoenen.code.zapp.utils.system.PreferenceFragmentHelper
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class PreferenceFragment : LeanbackPreferenceFragmentCompat(),
@@ -20,6 +23,19 @@ class PreferenceFragment : LeanbackPreferenceFragmentCompat(),
 		setPreferencesFromResource(R.xml.tv_preferences, rootKey)
 
 		preferenceFragmentHelper.initPreferences()
+
+		findPreference<androidx.preference.Preference>(getString(R.string.pref_key_zattoo_check))?.setOnPreferenceClickListener {
+			viewLifecycleOwner.lifecycleScope.launch {
+				val success = channelRepository.checkZattooLogin()
+				val messageResId = if (success) {
+					R.string.zattoo_login_success
+				} else {
+					R.string.zattoo_login_error
+				}
+				Toast.makeText(requireContext(), messageResId, Toast.LENGTH_SHORT).show()
+			}
+			true
+		}
 	}
 
 	override fun onResume() {
@@ -41,7 +57,7 @@ class PreferenceFragment : LeanbackPreferenceFragmentCompat(),
 		if (key == getString(R.string.pref_key_zattoo_username) ||
 			key == getString(R.string.pref_key_zattoo_password)
 		) {
-			channelRepository.tryLoadZattooChannels()
+			channelRepository.tryLoadZattooChannels(true)
 		}
 	}
 }

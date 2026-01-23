@@ -119,8 +119,12 @@ class ChannelRepository(
 		tryLoadZattooChannels()
 	}
 
-	fun tryLoadZattooChannels() {
+	fun tryLoadZattooChannels(forceReload: Boolean = false) {
 		scope.launch(Dispatchers.IO) {
+			if (forceReload) {
+				zattooService.logout()
+			}
+
 			try {
 				val zattooChannels = zattooService.getChannels()
 				val models = zattooChannels.map { zChannel ->
@@ -143,5 +147,11 @@ class ChannelRepository(
 				Timber.e(e, "Failed to load Zattoo channels")
 			}
 		}
+	}
+
+	suspend fun checkZattooLogin(): Boolean = withContext(Dispatchers.IO) {
+		zattooService.logout()
+		val channels = zattooService.getChannels()
+		return@withContext channels.isNotEmpty()
 	}
 }
