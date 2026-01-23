@@ -12,6 +12,7 @@ import de.christinecoenen.code.zapp.models.channels.CombinedChannelList
 import de.christinecoenen.code.zapp.models.channels.ISortableChannelList
 import de.christinecoenen.code.zapp.utils.io.IoUtils.readAllText
 import de.christinecoenen.code.zapp.utils.io.IoUtils.writeAllText
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,7 +25,8 @@ class ChannelRepository(
 	private val context: Context,
 	private val scope: CoroutineScope,
 	private val zappApi: IZappBackendApiService,
-	private val zattooService: ZattooService
+	private val zattooService: ZattooService,
+	private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
 
 	companion object {
@@ -98,7 +100,7 @@ class ChannelRepository(
 
 	init {
 
-		scope.launch(Dispatchers.IO) {
+		scope.launch(ioDispatcher) {
 
 			try {
 				// load fresh urls from api
@@ -120,7 +122,7 @@ class ChannelRepository(
 	}
 
 	fun tryLoadZattooChannels(forceReload: Boolean = false) {
-		scope.launch(Dispatchers.IO) {
+		scope.launch(ioDispatcher) {
 			if (forceReload) {
 				zattooService.logout()
 			}
@@ -149,7 +151,7 @@ class ChannelRepository(
 		}
 	}
 
-	suspend fun checkZattooLogin(): Boolean = withContext(Dispatchers.IO) {
+	suspend fun checkZattooLogin(): Boolean = withContext(ioDispatcher) {
 		zattooService.logout()
 		val channels = zattooService.getChannels()
 		return@withContext channels.isNotEmpty()

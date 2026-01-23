@@ -5,6 +5,7 @@ import de.christinecoenen.code.zapp.app.livestream.api.IZappBackendApiService
 import de.christinecoenen.code.zapp.app.zattoo.ZattooService
 import de.christinecoenen.code.zapp.app.zattoo.model.ZattooChannel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert
@@ -30,7 +31,8 @@ class ChannelRepositoryTest {
             ApplicationProvider.getApplicationContext(),
             testScope,
             zappApi,
-            zattooService
+            zattooService,
+            UnconfinedTestDispatcher(testScope.testScheduler)
         )
     }
 
