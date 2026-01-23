@@ -26,7 +26,7 @@ class ChannelListFragment : Fragment(), ListItemListener {
 	): View {
 		val binding = TvFragmentChannelListBinding.inflate(inflater, container, false)
 
-		binding.grid.setNumColumns(2)
+		binding.grid.setNumColumns(1)
 		binding.grid.adapter = ChannelListAdapter(channelRepository.getChannelList(), this, this)
 
 		return binding.root

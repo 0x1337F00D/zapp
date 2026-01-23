@@ -49,6 +49,11 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
         api = retrofit.create(ZattooApi::class.java)
     }
 
+    fun logout() {
+        powerGuideHash = null
+        appToken = null
+    }
+
     suspend fun getChannels(): List<ZattooChannel> = withContext(Dispatchers.IO) {
         try {
             ensureLogin()

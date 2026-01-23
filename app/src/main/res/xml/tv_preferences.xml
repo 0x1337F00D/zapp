@@ -11,4 +11,23 @@
 		app:entryValues="@array/available_tabs_values_tv"
 		app:useSimpleSummaryProvider="true" />
 
+	<PreferenceCategory
+		android:icon="@drawable/ic_live_tv_white_24dp"
+		android:title="@string/pref_header_zattoo">
+
+		<EditTextPreference
+			android:key="@string/pref_key_zattoo_username"
+			android:title="@string/pref_zattoo_username_title"
+			app:useSimpleSummaryProvider="true" />
+
+		<EditTextPreference
+			android:key="@string/pref_key_zattoo_password"
+			android:title="@string/pref_zattoo_password_title" />
+
+		<Preference
+			android:key="@string/pref_key_zattoo_check"
+			android:title="@string/pref_zattoo_check_title" />
+
+	</PreferenceCategory>
+
 </androidx.preference.PreferenceScreen>

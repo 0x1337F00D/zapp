@@ -12,6 +12,7 @@ import de.christinecoenen.code.zapp.models.channels.CombinedChannelList
 import de.christinecoenen.code.zapp.models.channels.ISortableChannelList
 import de.christinecoenen.code.zapp.utils.io.IoUtils.readAllText
 import de.christinecoenen.code.zapp.utils.io.IoUtils.writeAllText
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,9 +23,10 @@ import java.io.IOException
 @SuppressLint("CheckResult")
 class ChannelRepository(
 	private val context: Context,
-	scope: CoroutineScope,
+	private val scope: CoroutineScope,
 	private val zappApi: IZappBackendApiService,
-	private val zattooService: ZattooService
+	private val zattooService: ZattooService,
+	private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
 
 	companion object {
@@ -98,7 +100,7 @@ class ChannelRepository(
 
 	init {
 
-		scope.launch(Dispatchers.IO) {
+		scope.launch(ioDispatcher) {
 
 			try {
 				// load fresh urls from api
@@ -116,7 +118,15 @@ class ChannelRepository(
 			}
 		}
 
-		scope.launch(Dispatchers.IO) {
+		tryLoadZattooChannels()
+	}
+
+	fun tryLoadZattooChannels(forceReload: Boolean = false) {
+		scope.launch(ioDispatcher) {
+			if (forceReload) {
+				zattooService.logout()
+			}
+
 			try {
 				val zattooChannels = zattooService.getChannels()
 				val models = zattooChannels.map { zChannel ->
@@ -138,6 +148,16 @@ class ChannelRepository(
 			} catch (e: Exception) {
 				Timber.e(e, "Failed to load Zattoo channels")
 			}
+		}
+	}
+
+	suspend fun checkZattooLogin(): Boolean = withContext(ioDispatcher) {
+		zattooService.logout()
+		try {
+			val channels = zattooService.getChannels()
+			return@withContext channels.isNotEmpty()
+		} catch (e: Exception) {
+			return@withContext false
 		}
 	}
 }
