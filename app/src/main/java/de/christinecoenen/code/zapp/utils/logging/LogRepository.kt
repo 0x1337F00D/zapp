@@ -2,14 +2,18 @@ package de.christinecoenen.code.zapp.utils.logging
 
 import java.util.concurrent.ConcurrentLinkedDeque
 
+import java.util.concurrent.atomic.AtomicInteger
+
 object LogRepository {
     private val logs = ConcurrentLinkedDeque<String>()
     private const val MAX_LOGS = 1000
+    private val size = AtomicInteger(0)
 
     fun addLog(message: String) {
         logs.add(message)
-        if (logs.size > MAX_LOGS) {
+        if (size.incrementAndGet() > MAX_LOGS) {
             logs.pollFirst()
+            size.decrementAndGet()
         }
     }
 
@@ -19,5 +23,6 @@ object LogRepository {
 
     fun clear() {
         logs.clear()
+        size.set(0)
     }
 }

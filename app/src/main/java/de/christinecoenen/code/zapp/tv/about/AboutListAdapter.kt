@@ -7,6 +7,7 @@ import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.databinding.TvAboutItemBinding
 import de.christinecoenen.code.zapp.tv.changelog.ChangelogActivity
 import de.christinecoenen.code.zapp.tv.faq.FaqActivity
+import de.christinecoenen.code.zapp.tv.logs.LogsActivity
 import de.christinecoenen.code.zapp.tv.settings.SettingsActivity
 
 class AboutListAdapter(
@@ -28,6 +29,11 @@ class AboutListAdapter(
 			R.string.faq_title,
 			R.drawable.ic_baseline_help_outline_24,
 			FaqActivity
+		),
+		AboutItem(
+			R.string.action_show_logs,
+			R.drawable.ic_baseline_help_outline_24,
+			LogsActivity
 		),
 	)
 

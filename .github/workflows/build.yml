@@ -15,7 +15,7 @@ jobs:
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1
 
-    - name: Set up JDK 11
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
@@ -34,8 +34,8 @@ jobs:
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
       with:
-        name: zapp-release
-        path: app/build/outputs/apk/release/*.apk
+        name: zapp-debug
+        path: app/build/outputs/apk/debug/*.apk
 
     - name: Cleanup Gradle Cache
       # Remove some files from the Gradle cache, so they aren't cached by GitHub Actions.
