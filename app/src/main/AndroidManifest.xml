@@ -82,6 +82,10 @@
 			android:theme="@style/LeanbackAppTheme" />
 
 		<activity
+			android:name=".tv.logs.LogsActivityImpl"
+			android:theme="@style/LeanbackAppTheme" />
+
+		<activity
 			android:name=".app.main.MainActivity"
 			android:exported="true"
 			android:launchMode="singleTop"

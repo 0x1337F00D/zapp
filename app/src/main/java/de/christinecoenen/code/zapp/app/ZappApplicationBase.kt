@@ -9,6 +9,7 @@ import de.christinecoenen.code.zapp.app.settings.repository.SettingsRepository
 import de.christinecoenen.code.zapp.repositories.ChannelRepository
 import de.christinecoenen.code.zapp.repositories.MediathekRepository
 import de.christinecoenen.code.zapp.tv.error.CrashActivity
+import de.christinecoenen.code.zapp.utils.logging.LogTree
 import de.christinecoenen.code.zapp.utils.system.NotificationHelper.createBackgroundPlaybackChannel
 import org.acra.ACRA
 import org.acra.BuildConfig
@@ -47,6 +48,7 @@ abstract class ZappApplicationBase : Application() {
 		super.onCreate()
 
 		setUpLogging()
+		Timber.plant(LogTree())
 		createBackgroundPlaybackChannel(this)
 
 		koin = startKoin {

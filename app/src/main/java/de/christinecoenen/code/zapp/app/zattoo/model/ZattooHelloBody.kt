@@ -11,6 +11,8 @@ data class ZattooHelloBody(
     val appToken: String? = null,
     @SerializedName("client_app_token")
     val clientAppToken: String,
+    @SerializedName("app_version")
+    val appVersion: String = "3.2038.0",
     @SerializedName("format")
     val format: String = "json"
 )

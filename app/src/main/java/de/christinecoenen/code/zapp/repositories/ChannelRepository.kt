@@ -157,6 +157,7 @@ class ChannelRepository(
 			val channels = zattooService.getChannels()
 			return@withContext channels.isNotEmpty()
 		} catch (e: Exception) {
+			Timber.e(e, "Zattoo login check failed")
 			return@withContext false
 		}
 	}

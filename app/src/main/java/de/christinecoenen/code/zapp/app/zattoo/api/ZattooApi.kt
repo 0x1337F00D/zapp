@@ -8,10 +8,13 @@ import retrofit2.http.Path
 
 interface ZattooApi {
 
-    @POST("zapi/v2/session/hello")
+    @POST("zapi/v3/session/hello")
     suspend fun hello(@Body body: ZattooHelloBody): ZattooSessionResponse
 
-    @POST("zapi/v3/session")
+    @GET("zapi/v3/session")
+    suspend fun getSession(): ZattooSessionResponse
+
+    @POST("zapi/v3/account/login")
     suspend fun login(@Body body: ZattooLoginBody): ZattooSessionResponse
 
     @GET("zapi/v3/cached/{powerGuideHash}/channels")

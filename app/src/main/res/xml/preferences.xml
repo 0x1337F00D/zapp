@@ -113,6 +113,10 @@
 			android:key="@string/pref_key_zattoo_password"
 			android:title="@string/pref_zattoo_password_title" />
 
+		<Preference
+			android:key="@string/pref_key_zattoo_check"
+			android:title="@string/pref_zattoo_check_title" />
+
 	</PreferenceCategory>
 
 	<PreferenceCategory
