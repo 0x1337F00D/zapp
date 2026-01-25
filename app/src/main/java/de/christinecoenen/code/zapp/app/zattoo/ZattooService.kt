@@ -41,7 +41,12 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
             }
             .cookieJar(object : CookieJar {
                 override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    cookieStore[url.host] = cookies
+                    val existingCookies = cookieStore[url.host]?.toMutableList() ?: ArrayList()
+                    for (cookie in cookies) {
+                        existingCookies.removeIf { it.name == cookie.name }
+                        existingCookies.add(cookie)
+                    }
+                    cookieStore[url.host] = existingCookies
                 }
 
                 override fun loadForRequest(url: HttpUrl): List<Cookie> {

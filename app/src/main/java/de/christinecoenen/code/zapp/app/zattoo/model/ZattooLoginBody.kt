@@ -7,6 +7,8 @@ data class ZattooLoginBody(
     val login: String,
     @SerializedName("password")
     val password: String,
+    @SerializedName("remember")
+    val remember: String = "true",
     @SerializedName("format")
     val format: String = "json"
 )
