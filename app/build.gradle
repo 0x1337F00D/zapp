@@ -18,6 +18,12 @@ android {
 		versionName "9.1.1"
 		testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 		resourceConfigurations += ['de', 'en']
+
+		def buildTime = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+		def commitId = 'git rev-parse --short HEAD'.execute().text.trim()
+
+		buildConfigField "String", "BUILD_TIME", "\"${buildTime}\""
+		buildConfigField "String", "COMMIT_ID", "\"${commitId}\""
 	}
 
 	compileOptions {

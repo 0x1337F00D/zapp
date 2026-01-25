@@ -163,6 +163,13 @@ class AboutFragment : Fragment() {
 							style = MaterialTheme.typography.bodyLarge,
 							color = MaterialTheme.colorScheme.onSurface,
 						)
+
+						// build info
+						Text(
+							text = "${BuildConfig.BUILD_TIME} (${BuildConfig.COMMIT_ID})",
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
 					}
 				}
 				Spacer(Modifier.height(16.dp))
