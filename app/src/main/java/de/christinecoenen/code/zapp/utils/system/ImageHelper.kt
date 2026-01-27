@@ -18,7 +18,7 @@ object ImageHelper {
 
 	@JvmStatic
 	suspend fun loadThumbnailAsync(context: Context, filePath: String?): Bitmap =
-		withContext(Dispatchers.Default) {
+		withContext(Dispatchers.IO) {
 			loadThumbnail(context, filePath)
 		}
 
