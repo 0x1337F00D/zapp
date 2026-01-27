@@ -26,6 +26,7 @@ import de.christinecoenen.code.zapp.models.shows.PersistedMediathekShow
 import de.christinecoenen.code.zapp.models.shows.Quality
 import de.christinecoenen.code.zapp.repositories.MediathekRepository
 import de.christinecoenen.code.zapp.utils.system.NotificationHelper
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -49,7 +50,8 @@ class WorkManagerDownloadController(
 	private val scope: CoroutineScope,
 	private val mediathekRepository: MediathekRepository,
 	private val settingsRepository: SettingsRepository,
-	private val downloadFileInfoManager: DownloadFileInfoManager
+	private val downloadFileInfoManager: DownloadFileInfoManager,
+	private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : IDownloadController {
 
 	private val workManager = WorkManager.getInstance(applicationContext)
@@ -65,7 +67,7 @@ class WorkManagerDownloadController(
 		NotificationHelper.createDownloadProgressChannel(applicationContext)
 		NotificationHelper.createDownloadEventChannel(applicationContext)
 
-		scope.launch(Dispatchers.IO) {
+		scope.launch(ioDispatcher) {
 			workManager
 				.getWorkInfosByTagLiveData(WorkTag)
 				.asFlow()
@@ -77,7 +79,7 @@ class WorkManagerDownloadController(
 	}
 
 	override suspend fun startDownload(persistedShowId: Int, quality: Quality) =
-		withContext(Dispatchers.IO) {
+		withContext(ioDispatcher) {
 			val show = mediathekRepository.getPersistedShow(persistedShowId).first()
 
 			val downloadUrl = show.mediathekShow.getVideoUrl(quality)
@@ -156,7 +158,7 @@ class WorkManagerDownloadController(
 		}
 	}
 
-	private suspend fun deleteDownload(show: PersistedMediathekShow) = withContext(Dispatchers.IO) {
+	private suspend fun deleteDownload(show: PersistedMediathekShow) = withContext(ioDispatcher) {
 		deleteFile(show)
 
 		notificationManager.cancel(show.downloadId)
@@ -191,7 +193,7 @@ class WorkManagerDownloadController(
 		return mediathekRepository.getDownloadProgress(persistedShowId)
 	}
 
-	private suspend fun updateWorkInfos(workInfos: List<WorkInfo>) = withContext(Dispatchers.IO) {
+	private suspend fun updateWorkInfos(workInfos: List<WorkInfo>) = withContext(ioDispatcher) {
 		workInfos.chunked(50).forEach { workInfoChunk ->
 			val workInfoMap = workInfoChunk.associateBy { it.id.hashCode() }
 			val downloadIds = workInfoMap.keys.toList()
@@ -233,7 +235,7 @@ class WorkManagerDownloadController(
 	}
 
 	private suspend fun deleteFileOnStatusChangeIfNeeded(show: PersistedMediathekShow) =
-		withContext(Dispatchers.IO) {
+		withContext(ioDispatcher) {
 			when (show.downloadStatus) {
 				DownloadStatus.FAILED,
 				DownloadStatus.CANCELLED -> {
@@ -301,7 +303,7 @@ class WorkManagerDownloadController(
 	}
 
 	private suspend fun deleteFile(mediathekShow: PersistedMediathekShow, persist: Boolean = true) =
-		withContext(Dispatchers.IO) {
+		withContext(ioDispatcher) {
 			mediathekShow.downloadedVideoPath?.let {
 				downloadFileInfoManager.deleteDownloadFile(it)
 			}
