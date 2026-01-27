@@ -15,7 +15,7 @@ class ZattooRealApiTest {
 
     private lateinit var api: ZattooApi
     private val username = System.getenv("ZATTOO_EMAIL")
-    private val password = System.getenv("ZAPP_PASSWORD")
+    private val password = System.getenv("ZATTOO_PASSWORD")
 
     @Before
     fun setUp() {

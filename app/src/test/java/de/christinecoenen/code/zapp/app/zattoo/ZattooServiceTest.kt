@@ -1,7 +1,9 @@
 package de.christinecoenen.code.zapp.app.zattoo
 
 import android.content.Context
+import androidx.preference.PreferenceManager
 import androidx.test.core.app.ApplicationProvider
+import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.app.zattoo.api.ZattooApi
 import de.christinecoenen.code.zapp.app.zattoo.model.ZattooSessionData
 import de.christinecoenen.code.zapp.app.zattoo.model.ZattooStream
@@ -29,6 +31,13 @@ class ZattooServiceTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
+
+        // Set dummy credentials to satisfy ensureLogin
+        PreferenceManager.getDefaultSharedPreferences(context).edit()
+            .putString(context.getString(R.string.pref_key_zattoo_username), "dummy_user")
+            .putString(context.getString(R.string.pref_key_zattoo_password), "dummy_password")
+            .apply()
+
         zattooApi = mock()
         okHttpClient = OkHttpClient()
         zattooService = ZattooService(context, okHttpClient, zattooApi)
