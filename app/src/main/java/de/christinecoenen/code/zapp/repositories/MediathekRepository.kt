@@ -96,6 +96,12 @@ class MediathekRepository(private val database: Database) {
 			.update(show!!)
 	}
 
+	suspend fun updateShows(shows: List<PersistedMediathekShow>) = withContext(Dispatchers.IO) {
+		database
+			.mediathekShowDao()
+			.update(*shows.toTypedArray())
+	}
+
 	suspend fun updateDownloadProgress(downloadId: Int, progress: Int) =
 		withContext(Dispatchers.IO) {
 			database
