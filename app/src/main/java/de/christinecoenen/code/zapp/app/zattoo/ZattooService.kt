@@ -123,7 +123,7 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
         if (!sessionResponse.success) throw Exception("Session check failed")
 
         // If not logged in, try login
-        if (sessionResponse.session?.powerGuideHash == null) {
+        if (sessionResponse.session?.account == null) {
              val loginResponse = api.login(ZattooLoginBody(login = username, password = password))
              if (loginResponse.success && loginResponse.session != null) {
                  powerGuideHash = loginResponse.session.powerGuideHash
@@ -131,7 +131,7 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
                  throw Exception("Login failed")
              }
         } else {
-             powerGuideHash = sessionResponse.session.powerGuideHash
+             powerGuideHash = sessionResponse.session?.powerGuideHash
         }
     }
 
