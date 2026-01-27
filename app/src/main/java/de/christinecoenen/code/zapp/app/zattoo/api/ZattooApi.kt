@@ -27,17 +27,21 @@ interface ZattooApi {
     suspend fun login(
         @Field("login") login: String,
         @Field("password") password: String,
-        @Field("format") format: String
+        @Field("format") format: String,
+        @Field("remember") remember: Boolean = true
     ): ZattooSessionData
 
     @GET("zapi/v3/cached/{powerGuideHash}/channels")
     suspend fun getChannels(@Path("powerGuideHash") powerGuideHash: String): ZattooChannelsResponse
 
     @FormUrlEncoded
-    @POST("zapi/watch")
-    suspend fun watch(
-        @Field("cid") cid: String,
+    @POST("zapi/watch/live/{cid}")
+    suspend fun watchLive(
+        @Path("cid") cid: String,
+        @Field("quality") quality: String?,
         @Field("stream_type") streamType: String,
-        @Field("https_watch_urls") httpsWatchUrls: Boolean
-    ): ZattooStream
+        @Field("format") format: String = "json",
+        @Field("timeshift") timeshift: Int = 10800,
+        @Field("https_watch_urls") httpsWatchUrls: Boolean = true
+    ): ZattooWatchResponse
 }

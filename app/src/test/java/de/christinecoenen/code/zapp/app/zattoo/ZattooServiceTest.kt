@@ -8,6 +8,8 @@ import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.app.zattoo.api.ZattooApi
 import de.christinecoenen.code.zapp.app.zattoo.model.ZattooSessionData
 import de.christinecoenen.code.zapp.app.zattoo.model.ZattooStream
+import de.christinecoenen.code.zapp.app.zattoo.model.ZattooWatchResponse
+import de.christinecoenen.code.zapp.app.zattoo.model.ZattooWatchUrl
 import com.google.gson.JsonObject
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
@@ -50,12 +52,18 @@ class ZattooServiceTest : AutoCloseKoinTest() {
         val cid = "test_channel"
         val expectedUrl = "http://test.url/stream.m3u8"
         val mockSessionData = ZattooSessionData(true, "hash123", JsonObject()) // account is not null
-        val mockWatchResponse = ZattooStream(true, expectedUrl, null)
+        val mockWatchResponse = ZattooWatchResponse(
+            success = true,
+            stream = ZattooStream(
+                url = null,
+                watchUrls = listOf(ZattooWatchUrl(url = expectedUrl, maxRate = 0, licenseUrl = null))
+            )
+        )
 
         // Mock API
         whenever(zattooApi.hello(any(), any(), any(), any(), any())).thenReturn(mockSessionData)
         whenever(zattooApi.getSession()).thenReturn(mockSessionData)
-        whenever(zattooApi.watch(any(), any(), any())).thenReturn(mockWatchResponse)
+        whenever(zattooApi.watchLive(any(), any(), any(), any(), any(), any())).thenReturn(mockWatchResponse)
 
         // Inject App Token to avoid network call
         val appTokenField: Field = ZattooService::class.java.getDeclaredField("appToken")
