@@ -78,6 +78,9 @@ interface MediathekShowDao {
 	@Query("SELECT * FROM PersistedMediathekShow WHERE downloadId=:downloadId")
 	fun getFromDownloadId(downloadId: Int): Flow<PersistedMediathekShow?>
 
+	@Query("SELECT * FROM PersistedMediathekShow WHERE downloadId IN (:downloadIds)")
+	suspend fun getFromDownloadIds(downloadIds: List<Int>): List<PersistedMediathekShow>
+
 	@Query("SELECT downloadStatus FROM PersistedMediathekShow WHERE id=:id")
 	fun getDownloadStatus(id: Int): Flow<DownloadStatus?>
 

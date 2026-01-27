@@ -71,9 +71,7 @@ class WorkManagerDownloadController(
 				.asFlow()
 				.debounce(250.milliseconds)
 				.collectLatest { workInfos ->
-					workInfos.onEach {
-						updateWorkInDatabase(it)
-					}
+					updateWorkInfos(workInfos)
 				}
 		}
 	}
@@ -193,27 +191,35 @@ class WorkManagerDownloadController(
 		return mediathekRepository.getDownloadProgress(persistedShowId)
 	}
 
-	private suspend fun updateWorkInDatabase(workInfo: WorkInfo) = withContext(Dispatchers.IO) {
-		val show = mediathekRepository
-			.getPersistedShowByDownloadId(workInfo.id.hashCode())
-			.firstOrNull() ?: return@withContext
+	private suspend fun updateWorkInfos(workInfos: List<WorkInfo>) = withContext(Dispatchers.IO) {
+		workInfos.chunked(50).forEach { workInfoChunk ->
+			val workInfoMap = workInfoChunk.associateBy { it.id.hashCode() }
+			val downloadIds = workInfoMap.keys.toList()
 
-		show.downloadProgress = DownloadWorker.getProgress(workInfo)
+			val shows = mediathekRepository
+				.getPersistedShowsByDownloadIds(downloadIds)
 
-		show.downloadStatus = when (workInfo.state) {
-			WorkInfo.State.SUCCEEDED -> DownloadStatus.COMPLETED
-			WorkInfo.State.ENQUEUED -> DownloadStatus.QUEUED
-			WorkInfo.State.BLOCKED -> DownloadStatus.QUEUED
-			WorkInfo.State.RUNNING -> DownloadStatus.DOWNLOADING
-			WorkInfo.State.FAILED -> DownloadStatus.FAILED
-			WorkInfo.State.CANCELLED -> DownloadStatus.CANCELLED
+			shows.forEach { show ->
+				val workInfo = workInfoMap[show.downloadId] ?: return@forEach
+
+				show.downloadProgress = DownloadWorker.getProgress(workInfo)
+
+				show.downloadStatus = when (workInfo.state) {
+					WorkInfo.State.SUCCEEDED -> DownloadStatus.COMPLETED
+					WorkInfo.State.ENQUEUED -> DownloadStatus.QUEUED
+					WorkInfo.State.BLOCKED -> DownloadStatus.QUEUED
+					WorkInfo.State.RUNNING -> DownloadStatus.DOWNLOADING
+					WorkInfo.State.FAILED -> DownloadStatus.FAILED
+					WorkInfo.State.CANCELLED -> DownloadStatus.CANCELLED
+				}
+
+				showStatusChangeNotificationIfNeeded(workInfo, show)
+				updateMediaCollectionOnStatusChangeIfNeeded(show)
+				deleteFileOnStatusChangeIfNeeded(show)
+			}
+
+			mediathekRepository.updateShows(shows)
 		}
-
-		mediathekRepository.updateShow(show)
-
-		showStatusChangeNotificationIfNeeded(workInfo, show)
-		deleteFileOnStatusChangeIfNeeded(show)
-		updateMediaCollectionOnStatusChangeIfNeeded(show)
 	}
 
 	private fun updateMediaCollectionOnStatusChangeIfNeeded(show: PersistedMediathekShow) {
@@ -231,7 +237,7 @@ class WorkManagerDownloadController(
 			when (show.downloadStatus) {
 				DownloadStatus.FAILED,
 				DownloadStatus.CANCELLED -> {
-					deleteFile(show)
+					deleteFile(show, false)
 				}
 
 				else -> {}
@@ -294,13 +300,18 @@ class WorkManagerDownloadController(
 		}
 	}
 
-	private suspend fun deleteFile(mediathekShow: PersistedMediathekShow) =
+	private suspend fun deleteFile(mediathekShow: PersistedMediathekShow, persist: Boolean = true) =
 		withContext(Dispatchers.IO) {
 			mediathekShow.downloadedVideoPath?.let {
 				downloadFileInfoManager.deleteDownloadFile(it)
 			}
 
-			mediathekRepository.updateDownloadedVideoPath(mediathekShow.downloadId, null)
-			mediathekRepository.updateDownloadProgress(mediathekShow.downloadId, 0)
+			mediathekShow.downloadedVideoPath = null
+			mediathekShow.downloadProgress = 0
+
+			if (persist) {
+				mediathekRepository.updateDownloadedVideoPath(mediathekShow.downloadId, null)
+				mediathekRepository.updateDownloadProgress(mediathekShow.downloadId, 0)
+			}
 		}
 }

@@ -144,6 +144,19 @@ class MediathekRepository(private val database: Database) {
 			.flowOn(Dispatchers.IO)
 	}
 
+	suspend fun getPersistedShowsByDownloadIds(downloadIds: List<Int>): List<PersistedMediathekShow> =
+		withContext(Dispatchers.IO) {
+			database
+				.mediathekShowDao()
+				.getFromDownloadIds(downloadIds)
+		}
+
+	suspend fun updateShows(shows: List<PersistedMediathekShow>) = withContext(Dispatchers.IO) {
+		database
+			.mediathekShowDao()
+			.update(*shows.toTypedArray())
+	}
+
 	fun getDownloadStatus(id: Int): Flow<DownloadStatus> {
 		return database
 			.mediathekShowDao()
