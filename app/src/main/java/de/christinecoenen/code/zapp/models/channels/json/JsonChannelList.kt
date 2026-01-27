@@ -15,11 +15,23 @@ import java.io.IOException
  */
 class JsonChannelList(private val context: Context) : IChannelList {
 
+	companion object {
+		private var cachedList: List<ChannelModel>? = null
+	}
+
 	override val list: List<ChannelModel>
 
 	init {
-		val parser = JsonChannelsParser(context)
-		list = parser.parse(getJsonString())
+		if (cachedList == null) {
+			synchronized(JsonChannelList::class.java) {
+				if (cachedList == null) {
+					val parser = JsonChannelsParser(context)
+					cachedList = parser.parse(getJsonString())
+				}
+			}
+		}
+
+		list = cachedList!!.map { it.copy() }
 	}
 
 	override fun get(index: Int) = list[index]
