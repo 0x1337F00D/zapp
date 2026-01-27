@@ -17,10 +17,10 @@ interface ZattooApi {
         @Field("client_app_token") clientAppToken: String,
         @Field("app_version") appVersion: String,
         @Field("format") format: String
-    ): ZattooSessionResponse
+    ): ZattooSessionData
 
     @GET("zapi/v3/session")
-    suspend fun getSession(): ZattooSessionResponse
+    suspend fun getSession(): ZattooSessionData
 
     @FormUrlEncoded
     @POST("zapi/v3/account/login")
@@ -28,7 +28,7 @@ interface ZattooApi {
         @Field("login") login: String,
         @Field("password") password: String,
         @Field("format") format: String
-    ): ZattooSessionResponse
+    ): ZattooSessionData
 
     @GET("zapi/v3/cached/{powerGuideHash}/channels")
     suspend fun getChannels(@Path("powerGuideHash") powerGuideHash: String): ZattooChannelsResponse
@@ -39,5 +39,5 @@ interface ZattooApi {
         @Field("cid") cid: String,
         @Field("stream_type") streamType: String,
         @Field("https_watch_urls") httpsWatchUrls: Boolean
-    ): ZattooWatchResponse
+    ): ZattooStream
 }
