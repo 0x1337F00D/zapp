@@ -95,7 +95,11 @@ class ZattooService(
             streamType = "hls",
             httpsWatchUrls = true
         )
-        response.url
+        if (response.success && response.stream != null) {
+            response.stream.url
+        } else {
+            throw Exception("Could not get stream URL for $cid")
+        }
     }
 
     private suspend fun ensureLogin() {
@@ -132,23 +136,27 @@ class ZattooService(
             format = "json"
         )
 
+        if (!helloResponse.success) throw Exception("Hello failed")
+
         val sessionResponse = api.getSession()
 
+        if (!sessionResponse.success) throw Exception("Session check failed")
+
         // If not logged in, try login
-        if (sessionResponse.account == null) {
+        if (sessionResponse.session?.account == null) {
              val loginResponse = api.login(
                  login = username,
                  password = password,
                  format = "json"
              )
 
-             if (loginResponse.account != null) {
-                 powerGuideHash = loginResponse.powerGuideHash
+             if (loginResponse.success && loginResponse.session != null) {
+                 powerGuideHash = loginResponse.session.powerGuideHash
              } else {
                  throw Exception("Login failed")
              }
         } else {
-             powerGuideHash = sessionResponse.powerGuideHash
+             powerGuideHash = sessionResponse.session?.powerGuideHash
         }
     }
 

@@ -3,10 +3,13 @@ package de.christinecoenen.code.zapp.app.zattoo
 import android.content.Context
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ApplicationProvider
+import de.christinecoenen.code.zapp.AutoCloseKoinTest
 import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.app.zattoo.api.ZattooApi
 import de.christinecoenen.code.zapp.app.zattoo.model.ZattooSessionData
+import de.christinecoenen.code.zapp.app.zattoo.model.ZattooSessionResponse
 import de.christinecoenen.code.zapp.app.zattoo.model.ZattooStream
+import de.christinecoenen.code.zapp.app.zattoo.model.ZattooWatchResponse
 import com.google.gson.JsonObject
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
@@ -21,7 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import java.lang.reflect.Field
 
 @RunWith(RobolectricTestRunner::class)
-class ZattooServiceTest {
+class ZattooServiceTest : AutoCloseKoinTest() {
 
     private lateinit var context: Context
     private lateinit var zattooApi: ZattooApi
@@ -49,11 +52,13 @@ class ZattooServiceTest {
         val cid = "test_channel"
         val expectedUrl = "http://test.url/stream.m3u8"
         val mockSessionData = ZattooSessionData("hash123", JsonObject()) // account is not null
+        val mockSessionResponse = ZattooSessionResponse(true, mockSessionData)
+        val mockWatchResponse = ZattooWatchResponse(true, ZattooStream(expectedUrl, null))
 
         // Mock API
-        whenever(zattooApi.hello(any(), any(), any(), any(), any())).thenReturn(mockSessionData)
-        whenever(zattooApi.getSession()).thenReturn(mockSessionData)
-        whenever(zattooApi.watch(any(), any(), any())).thenReturn(ZattooStream(expectedUrl, null))
+        whenever(zattooApi.hello(any(), any(), any(), any(), any())).thenReturn(mockSessionResponse)
+        whenever(zattooApi.getSession()).thenReturn(mockSessionResponse)
+        whenever(zattooApi.watch(any(), any(), any())).thenReturn(mockWatchResponse)
 
         // Inject App Token to avoid network call
         val appTokenField: Field = ZattooService::class.java.getDeclaredField("appToken")

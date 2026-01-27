@@ -56,7 +56,7 @@ class ZattooRealApiTest {
         val appToken = jsonObject.get("session_token").asString
 
         // Test Hello
-        val sessionData = api.hello(
+        val sessionResponse = api.hello(
             uuid = uuid,
             lang = "de",
             clientAppToken = appToken,
@@ -64,19 +64,23 @@ class ZattooRealApiTest {
             format = "json"
         )
 
-        assertNotNull("Session data should not be null", sessionData)
+        assertNotNull("Session response should not be null", sessionResponse)
+        assert(sessionResponse.success)
+        assertNotNull("Session data should not be null", sessionResponse.session)
         // In verify_zattoo.py, hello returned power_guide_hash
-        assertNotNull("PowerGuideHash should not be null", sessionData.powerGuideHash)
+        assertNotNull("PowerGuideHash should not be null", sessionResponse.session!!.powerGuideHash)
 
         // Test Login
-        val loginData = api.login(
+        val loginResponse = api.login(
             login = username!!,
             password = password!!,
             format = "json"
         )
 
-        assertNotNull("Login data should not be null", loginData)
-        assertNotNull("Account should not be null", loginData.account)
-        assertNotNull("PowerGuideHash should not be null", loginData.powerGuideHash)
+        assertNotNull("Login response should not be null", loginResponse)
+        assert(loginResponse.success)
+        assertNotNull("Session data should not be null", loginResponse.session)
+        assertNotNull("Account should not be null", loginResponse.session!!.account)
+        assertNotNull("PowerGuideHash should not be null", loginResponse.session!!.powerGuideHash)
     }
 }
