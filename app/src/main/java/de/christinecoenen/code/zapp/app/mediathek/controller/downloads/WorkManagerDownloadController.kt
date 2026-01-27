@@ -49,13 +49,12 @@ class WorkManagerDownloadController(
 	private val scope: CoroutineScope,
 	private val mediathekRepository: MediathekRepository,
 	private val settingsRepository: SettingsRepository,
-	private val downloadFileInfoManager: DownloadFileInfoManager
-) : IDownloadController {
-
-	private val workManager = WorkManager.getInstance(applicationContext)
-	private val notificationManager = NotificationManagerCompat.from(applicationContext)
-	private val connectivityManager =
+	private val downloadFileInfoManager: DownloadFileInfoManager,
+	private val workManager: WorkManager = WorkManager.getInstance(applicationContext),
+	private val notificationManager: NotificationManagerCompat = NotificationManagerCompat.from(applicationContext),
+	private val connectivityManager: ConnectivityManager =
 		applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+) : IDownloadController {
 
 	companion object {
 		const val WorkTag = "zapp_download"
@@ -172,16 +171,34 @@ class WorkManagerDownloadController(
 		mediathekRepository.updateShow(show)
 	}
 
+	private suspend fun deleteDownloads(shows: List<PersistedMediathekShow>) = withContext(Dispatchers.IO) {
+		shows.forEach { show ->
+			show.downloadedVideoPath?.let {
+				downloadFileInfoManager.deleteDownloadFile(it)
+			}
+
+			notificationManager.cancel(show.downloadId)
+
+			show.downloadProgress = 0
+			show.downloadStatus = DownloadStatus.NONE
+			show.downloadId = 0
+			show.downloadedAt = null
+			show.downloadedVideoPath = null
+		}
+
+		mediathekRepository.updateShows(shows)
+	}
+
 	override fun deleteDownloadsWithDeletedFiles() {
 		scope.launch {
-			mediathekRepository
+			val showsToDelete = mediathekRepository
 				.getCompletedDownloads()
 				.first()
-				.forEach {
-					if (downloadFileInfoManager.shouldDeleteDownload(it)) {
-						deleteDownload(it)
-					}
-				}
+				.filter { downloadFileInfoManager.shouldDeleteDownload(it) }
+
+			if (showsToDelete.isNotEmpty()) {
+				deleteDownloads(showsToDelete)
+			}
 		}
 	}
 
