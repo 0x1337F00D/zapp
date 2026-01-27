@@ -37,6 +37,7 @@ class DownloadWorker(appContext: Context, workerParams: WorkerParameters) :
 		private const val BufferSize = DEFAULT_BUFFER_SIZE
 		private const val SupportRangeHeaderForRetries = true
 		private const val MaxRetries = 3
+		private const val ProgressUpdateIntervalMillis = 500L
 		private val NotificationDelay = 100.milliseconds
 
 		fun constructInputData(
@@ -219,7 +220,7 @@ class DownloadWorker(appContext: Context, workerParams: WorkerParameters) :
 		inputStream: InputStream,
 		outputStream: OutputStream
 	) = withContext(Dispatchers.IO) {
-		var readCount = 0L
+		var lastProgressReportTime = System.currentTimeMillis()
 		val buffer = ByteArray(BufferSize)
 		var bytes = inputStream.read(buffer)
 
@@ -228,12 +229,12 @@ class DownloadWorker(appContext: Context, workerParams: WorkerParameters) :
 			downloadedBytes += bytes
 
 			bytes = inputStream.read(buffer)
-			readCount++
 
-			// TODO: use a better, time based debounce
-			if (readCount % 500 == 0L) {
+			val now = System.currentTimeMillis()
+			if (now - lastProgressReportTime > ProgressUpdateIntervalMillis) {
 				progress = ((downloadedBytes * 100) / totalBytes).toInt()
 				reportProgress()
+				lastProgressReportTime = now
 			}
 		}
 	}
