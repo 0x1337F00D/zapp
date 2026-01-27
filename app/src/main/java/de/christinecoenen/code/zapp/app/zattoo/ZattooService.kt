@@ -10,16 +10,16 @@ import de.christinecoenen.code.zapp.app.zattoo.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Cookie
-import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.JavaNetCookieJar
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
+import java.net.HttpCookie
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.net.URI
 import java.util.UUID
 import kotlin.random.Random
 
@@ -45,7 +45,10 @@ class ZattooService(
          httpClient = baseClient.newBuilder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .header("User-Agent", "Kodi/20.0 pvr.zattoo/MWE")
+                    .header(
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0"
+                    )
                     .build()
                 chain.proceed(request)
             }
@@ -126,7 +129,11 @@ class ZattooService(
             .name("uuid")
             .value(uuid)
             .build()
-        cookieManager.cookieStore.add("https://zattoo.com/".toHttpUrl().uri(), cookie)
+        val httpCookie = HttpCookie(cookie.name, cookie.value).apply {
+            domain = cookie.domain
+            path = cookie.path
+        }
+        cookieManager.cookieStore.add(URI.create("https://zattoo.com/"), httpCookie)
 
         val helloResponse = api.hello(
             uuid = uuid,

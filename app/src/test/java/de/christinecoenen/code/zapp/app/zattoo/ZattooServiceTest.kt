@@ -18,6 +18,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
@@ -63,7 +64,7 @@ class ZattooServiceTest : AutoCloseKoinTest() {
         // Mock API
         whenever(zattooApi.hello(any(), any(), any(), any(), any())).thenReturn(mockSessionData)
         whenever(zattooApi.getSession()).thenReturn(mockSessionData)
-        whenever(zattooApi.watchLive(any(), any(), any(), any(), any(), any())).thenReturn(mockWatchResponse)
+        whenever(zattooApi.watchLive(any(), anyOrNull(), any(), any(), any(), any())).thenReturn(mockWatchResponse)
 
         // Inject App Token to avoid network call
         val appTokenField: Field = ZattooService::class.java.getDeclaredField("appToken")
