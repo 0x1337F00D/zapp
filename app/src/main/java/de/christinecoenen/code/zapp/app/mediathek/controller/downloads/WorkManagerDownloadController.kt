@@ -26,6 +26,7 @@ import de.christinecoenen.code.zapp.models.shows.PersistedMediathekShow
 import de.christinecoenen.code.zapp.models.shows.Quality
 import de.christinecoenen.code.zapp.repositories.MediathekRepository
 import de.christinecoenen.code.zapp.utils.system.NotificationHelper
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -49,13 +50,12 @@ class WorkManagerDownloadController(
 	private val scope: CoroutineScope,
 	private val mediathekRepository: MediathekRepository,
 	private val settingsRepository: SettingsRepository,
-	private val downloadFileInfoManager: DownloadFileInfoManager
+	private val downloadFileInfoManager: DownloadFileInfoManager,
+	private val workManager: WorkManager = WorkManager.getInstance(applicationContext),
+	private val notificationManager: NotificationManagerCompat = NotificationManagerCompat.from(applicationContext),
+	private val connectivityManager: ConnectivityManager = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager,
+	private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : IDownloadController {
-
-	private val workManager = WorkManager.getInstance(applicationContext)
-	private val notificationManager = NotificationManagerCompat.from(applicationContext)
-	private val connectivityManager =
-		applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
 	companion object {
 		const val WorkTag = "zapp_download"
@@ -65,7 +65,7 @@ class WorkManagerDownloadController(
 		NotificationHelper.createDownloadProgressChannel(applicationContext)
 		NotificationHelper.createDownloadEventChannel(applicationContext)
 
-		scope.launch(Dispatchers.IO) {
+		scope.launch(ioDispatcher) {
 			workManager
 				.getWorkInfosByTagLiveData(WorkTag)
 				.asFlow()
@@ -79,7 +79,7 @@ class WorkManagerDownloadController(
 	}
 
 	override suspend fun startDownload(persistedShowId: Int, quality: Quality) =
-		withContext(Dispatchers.IO) {
+		withContext(ioDispatcher) {
 			val show = mediathekRepository.getPersistedShow(persistedShowId).first()
 
 			val downloadUrl = show.mediathekShow.getVideoUrl(quality)
@@ -158,7 +158,7 @@ class WorkManagerDownloadController(
 		}
 	}
 
-	private suspend fun deleteDownload(show: PersistedMediathekShow) = withContext(Dispatchers.IO) {
+	private suspend fun deleteDownload(show: PersistedMediathekShow) = withContext(ioDispatcher) {
 		deleteFile(show)
 
 		notificationManager.cancel(show.downloadId)
@@ -174,14 +174,16 @@ class WorkManagerDownloadController(
 
 	override fun deleteDownloadsWithDeletedFiles() {
 		scope.launch {
-			mediathekRepository
-				.getCompletedDownloads()
-				.first()
-				.forEach {
-					if (downloadFileInfoManager.shouldDeleteDownload(it)) {
-						deleteDownload(it)
+			withContext(ioDispatcher) {
+				mediathekRepository
+					.getCompletedDownloads()
+					.first()
+					.forEach {
+						if (downloadFileInfoManager.shouldDeleteDownload(it)) {
+							deleteDownload(it)
+						}
 					}
-				}
+			}
 		}
 	}
 
@@ -193,7 +195,7 @@ class WorkManagerDownloadController(
 		return mediathekRepository.getDownloadProgress(persistedShowId)
 	}
 
-	private suspend fun updateWorkInDatabase(workInfo: WorkInfo) = withContext(Dispatchers.IO) {
+	private suspend fun updateWorkInDatabase(workInfo: WorkInfo) = withContext(ioDispatcher) {
 		val show = mediathekRepository
 			.getPersistedShowByDownloadId(workInfo.id.hashCode())
 			.firstOrNull() ?: return@withContext
@@ -227,7 +229,7 @@ class WorkManagerDownloadController(
 	}
 
 	private suspend fun deleteFileOnStatusChangeIfNeeded(show: PersistedMediathekShow) =
-		withContext(Dispatchers.IO) {
+		withContext(ioDispatcher) {
 			when (show.downloadStatus) {
 				DownloadStatus.FAILED,
 				DownloadStatus.CANCELLED -> {
@@ -295,7 +297,7 @@ class WorkManagerDownloadController(
 	}
 
 	private suspend fun deleteFile(mediathekShow: PersistedMediathekShow) =
-		withContext(Dispatchers.IO) {
+		withContext(ioDispatcher) {
 			mediathekShow.downloadedVideoPath?.let {
 				downloadFileInfoManager.deleteDownloadFile(it)
 			}
