@@ -73,13 +73,6 @@ class MediathekListFragment : Fragment(),
 			filterViewModel.setSearchQueryFilter(it?.toString())
 		}
 
-		// hack to get focus to the input field
-		binding.searchWrapper.setOnFocusChangeListener { _, isFocused ->
-			if (isFocused) {
-				binding.search.requestFocus()
-			}
-		}
-
 		binding.search.setOnEditorActionListener { _, actionId, _ ->
 			if (actionId == EditorInfo.IME_ACTION_SEARCH) {
 				val inputMethodManager =
