@@ -1,0 +1,52 @@
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:prepareLibraryDefinitionsDebug UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :app:generateDebugBuildConfig
+> Task :app:generateSafeArgsDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin
+> Task :app:compileDebugKotlin
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:65:13 Condition is always 'false'.
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:75:13 Condition is always 'false'.
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:95:13 Condition is always 'false'.
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:104:13 Condition is always 'false'.
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:180:13 Condition is always 'false'.
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:190:13 Condition is always 'false'.
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:210:13 Condition is always 'false'.
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:219:13 Condition is always 'false'.
+w: file:///app/app/build/generated/ksp/debug/kotlin/de/christinecoenen/code/zapp/persistence/MediathekShowDao_Impl.kt:2460:13 Condition is always 'false'.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/app/mediathek/controller/downloads/DownloadFileInfoManager.kt:143:46 'val externalMediaDirs: (Array<File!>..Array<out File!>?)' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/app/mediathek/controller/downloads/RetryDownloadBroadcastReceiver.kt:43:33 'fun getSerializable(p0: String?): Serializable?' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/app/mediathek/ui/dialogs/SelectQualityDialog.kt:34:18 'fun getSerializable(p0: String?): Serializable?' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/app/mediathek/ui/dialogs/SelectQualityDialog.kt:45:29 'fun getSerializable(p0: String?): Serializable?' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/app/mediathek/ui/dialogs/SelectQualityDialog.kt:47:33 'fun getSerializable(p0: String?): Serializable?' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/tv/logs/LogPresenter.kt:16:2 Override 'fun onBindViewHolder(viewHolder: Presenter.ViewHolder, item: Any): Unit' has incorrect nullability in its signature compared to the overridden declaration 'fun onBindViewHolder(p0: @NonNull() Presenter.ViewHolder, p1: @Nullable() Any?): Unit'.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/tv/main/MainNavPagerAdapter.kt:7:8 'class FragmentPagerAdapter : PagerAdapter' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/tv/main/MainNavPagerAdapter.kt:17:5 'class FragmentPagerAdapter : PagerAdapter' is deprecated. Deprecated in Java.
+w: file:///app/app/src/main/java/de/christinecoenen/code/zapp/tv/player/PlayerFragment.kt:27:22 'fun getSerializableExtra(p0: String!): Serializable?' is deprecated. Deprecated in Java.
+
+[Incubating] Problems report is available at: file:///app/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 57s
+20 actionable tasks: 3 executed, 17 up-to-date
