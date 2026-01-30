@@ -1,9 +1,12 @@
 package de.christinecoenen.code.zapp.app.main
 
 import android.Manifest
+import android.app.SearchManager
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.speech.RecognizerIntent
 import android.view.Menu
 import android.view.MenuInflater
@@ -37,10 +40,12 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.search.SearchView
 import de.christinecoenen.code.zapp.R
+import de.christinecoenen.code.zapp.app.livestream.ui.detail.ChannelPlayerActivity
 import de.christinecoenen.code.zapp.app.search.SearchViewModel
 import de.christinecoenen.code.zapp.app.search.SearchViewModel.SeachState
 import de.christinecoenen.code.zapp.app.settings.repository.SettingsRepository
 import de.christinecoenen.code.zapp.databinding.ActivityMainBinding
+import de.christinecoenen.code.zapp.repositories.ChannelRepository
 import de.christinecoenen.code.zapp.utils.system.IntentHelper
 import de.christinecoenen.code.zapp.utils.system.LifecycleOwnerHelper.launchOnCreated
 import de.christinecoenen.code.zapp.utils.system.SystemUiHelper.applyHorizontalInsetsAsPadding
@@ -56,6 +61,7 @@ class MainActivity : AppCompatActivity(), MenuProvider {
 	private val binding get() = _binding!!
 
 	private val settingsRepository: SettingsRepository by inject()
+	private val channelRepository: ChannelRepository by inject()
 
 	private val searchViewModel: SearchViewModel by viewModel()
 
@@ -171,7 +177,7 @@ class MainActivity : AppCompatActivity(), MenuProvider {
 		}
 
 		launchOnCreated {
-			searchViewModel.searchState.drop(1).collectLatest { searchState ->
+			searchViewModel.searchState.collectLatest { searchState ->
 				val query = binding.searchView.text.toString()
 
 				when (searchState) {
@@ -207,6 +213,8 @@ class MainActivity : AppCompatActivity(), MenuProvider {
 		}
 
 		requestPermissions()
+
+		handleIntent(intent)
 
 		binding.appBar.applyHorizontalInsetsAsPadding()
 		binding.navHostFragment.applyHorizontalInsetsAsPadding()
@@ -274,8 +282,36 @@ class MainActivity : AppCompatActivity(), MenuProvider {
 		return menuItem.onNavDestinationSelected(navController)
 	}
 
+	override fun onNewIntent(intent: Intent) {
+		super.onNewIntent(intent)
+		handleIntent(intent)
+	}
+
 	override fun onSupportNavigateUp(): Boolean {
 		return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+	}
+
+	private fun handleIntent(intent: Intent) {
+		if (Intent.ACTION_SEARCH == intent.action) {
+			intent.getStringExtra(SearchManager.QUERY)?.let { query ->
+				searchViewModel.enterLastSearch()
+				searchViewModel.setSearchQuery(query)
+				searchViewModel.submit()
+			}
+		} else if (MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH == intent.action) {
+			val query = intent.getStringExtra(SearchManager.QUERY)
+			val channel = channelRepository.getChannelList().list.find {
+				it.name.equals(query, ignoreCase = true)
+			}
+			if (channel != null) {
+				val startIntent = ChannelPlayerActivity.getStartIntent(this, channel.id)
+				startActivity(startIntent)
+			} else if (query != null) {
+				searchViewModel.enterLastSearch()
+				searchViewModel.setSearchQuery(query)
+				searchViewModel.submit()
+			}
+		}
 	}
 
 	private fun onSubmitSearch() {
