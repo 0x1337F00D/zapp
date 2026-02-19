@@ -73,7 +73,7 @@ fun MediathekScreen(
 		) {
 			IconButton(onClick = onSearchClick) {
 				Icon(
-					painter = painterResource(id = R.drawable.ic_search_white_24dp),
+					painter = painterResource(id = R.drawable.ic_baseline_search_24),
 					contentDescription = stringResource(R.string.menu_search)
 				)
 			}
@@ -95,7 +95,7 @@ fun MediathekScreen(
 			if (continueWatching.isNotEmpty()) {
 				item {
 					ShowRow(
-						title = stringResource(R.string.fragment_mediathek_list_tab_started), // Reuse existing string if suitable or hardcode for now
+						title = stringResource(R.string.activity_main_tab_continue_watching),
 						shows = continueWatching,
 						viewModel = viewModel,
 						onShowClick = onShowClick

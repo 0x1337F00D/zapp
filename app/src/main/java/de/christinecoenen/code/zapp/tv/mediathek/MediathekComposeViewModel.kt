@@ -78,7 +78,7 @@ class MediathekComposeViewModel(
 				size = 50
 			}
 			val response = mediathekApiService.listShows(request)
-			_searchResults.value = response.result ?: emptyList()
+			_searchResults.value = response.result?.results ?: emptyList()
 		} catch (e: Exception) {
 			Timber.e(e, "Search failed")
 			_searchResults.value = emptyList()
@@ -97,7 +97,7 @@ class MediathekComposeViewModel(
 					future = false
 				}
 				val response = mediathekApiService.listShows(queryRequest)
-				_newShows.value = response.result ?: emptyList()
+				_newShows.value = response.result?.results ?: emptyList()
 
 				// Pick a hero show (e.g., the first long duration show from new list, or just first)
 				_heroShow.value = _newShows.value.firstOrNull {
