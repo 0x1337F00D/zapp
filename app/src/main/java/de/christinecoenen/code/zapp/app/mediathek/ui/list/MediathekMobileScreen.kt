@@ -88,7 +88,18 @@ fun MediathekMobileScreen(
 			}
 
 			// New Shows
-			if (newShows.isNotEmpty()) {
+			val series by viewModel.series.collectAsState()
+
+			if (series.isNotEmpty()) {
+				items(series) { singleSeries ->
+					ShowRow(
+						title = singleSeries.title,
+						shows = singleSeries.shows,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			} else if (newShows.isNotEmpty()) {
 				item {
 					ShowRow(
 						title = stringResource(R.string.activity_main_tab_mediathek),
@@ -229,13 +240,18 @@ fun ShowCard(
 	channel: ChannelModel?,
 	onShowClick: (MediathekShow) -> Unit
 ) {
-	val backgroundColor = channel?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.surfaceVariant
+	// Generate a stable color based on topic if no channel color or to differentiate
+	val topicColor = remember(show.topic) {
+		Color(show.topic.hashCode() or 0xFF000000.toInt())
+	}
+
+	val backgroundColor = channel?.color?.let { Color(it) } ?: topicColor
 
 	Card(
 		onClick = { onShowClick(show) },
 		modifier = Modifier
-			.width(140.dp)
-			.aspectRatio(2f / 3f), // Portrait aspect ratio for mobile cards look good
+			.width(160.dp)
+			.aspectRatio(16f / 9f), // Landscape matches TV style better for video content
 		shape = RoundedCornerShape(8.dp),
 		colors = CardDefaults.cardColors(containerColor = backgroundColor)
 	) {
@@ -247,8 +263,9 @@ fun ShowCard(
 					contentDescription = null,
 					modifier = Modifier
 						.fillMaxSize()
-						.padding(24.dp)
-						.alpha(0.1f),
+						.padding(8.dp)
+						.alpha(0.15f)
+						.align(Alignment.CenterEnd), // Move logo to side/back
 					contentScale = ContentScale.Fit,
 					placeholder = painterResource(it.drawableId),
 					error = painterResource(it.drawableId)

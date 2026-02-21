@@ -17,12 +17,19 @@ import androidx.navigation.fragment.findNavController
 import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.app.main.MainActivity
 import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
+import de.christinecoenen.code.zapp.app.player.VideoInfo
 import de.christinecoenen.code.zapp.models.shows.MediathekShow
+import de.christinecoenen.code.zapp.tv.player.PlayerActivity
+import de.christinecoenen.code.zapp.repositories.MediathekRepository
+import de.christinecoenen.code.zapp.utils.system.LifecycleOwnerHelper.launchOnCreated
+import kotlinx.coroutines.flow.first
+import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MediathekListFragment : Fragment(), MenuProvider {
 
 	private val viewModel: MediathekUiViewModel by viewModel()
+	private val mediathekRepository: MediathekRepository by inject()
 
 	override fun onCreateView(
 		inflater: LayoutInflater,
@@ -68,7 +75,11 @@ class MediathekListFragment : Fragment(), MenuProvider {
 	}
 
 	private fun onShowClicked(show: MediathekShow) {
-		val directions = MediathekListFragmentDirections.toMediathekDetailFragment(show)
-		findNavController().navigate(directions)
+		launchOnCreated {
+			val persistedShow = mediathekRepository.persistOrUpdateShow(show).first()
+			val videoInfo = VideoInfo.fromShow(persistedShow)
+			val intent = PlayerActivity.getStartIntent(requireContext(), videoInfo)
+			startActivity(intent)
+		}
 	}
 }

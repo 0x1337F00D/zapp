@@ -16,9 +16,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
+
+data class MediathekSeries(
+	val title: String,
+	val shows: List<MediathekShow>
+)
 
 @OptIn(FlowPreview::class)
 class MediathekUiViewModel(
@@ -32,6 +38,14 @@ class MediathekUiViewModel(
 
 	private val _newShows = MutableStateFlow<List<MediathekShow>>(emptyList())
 	val newShows: StateFlow<List<MediathekShow>> = _newShows.asStateFlow()
+
+	val series: StateFlow<List<MediathekSeries>> = _newShows.map { shows ->
+		shows
+			.groupBy { it.topic }
+			.filter { it.value.size > 1 } // Only show series with at least 2 episodes
+			.map { MediathekSeries(it.key, it.value) }
+			.sortedByDescending { it.shows.maxOfOrNull { show -> show.timestamp } }
+	}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
 	private val _broadcasters = MutableStateFlow<List<ChannelModel>>(emptyList())
 	val broadcasters: StateFlow<List<ChannelModel>> = _broadcasters.asStateFlow()
