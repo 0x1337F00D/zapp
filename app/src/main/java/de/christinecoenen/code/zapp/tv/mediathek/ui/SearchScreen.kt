@@ -35,7 +35,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import de.christinecoenen.code.zapp.R
 import de.christinecoenen.code.zapp.models.shows.MediathekShow
-import de.christinecoenen.code.zapp.tv.mediathek.MediathekComposeViewModel
+import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -43,7 +43,7 @@ import org.koin.androidx.compose.koinViewModel
 fun SearchScreen(
 	onShowClick: (MediathekShow) -> Unit,
 	onBack: () -> Unit,
-	viewModel: MediathekComposeViewModel = koinViewModel()
+	viewModel: MediathekUiViewModel = koinViewModel()
 ) {
 	val searchQuery by viewModel.searchQuery.collectAsState()
 	val searchResults by viewModel.searchResults.collectAsState()
@@ -114,7 +114,7 @@ fun SearchScreen(
 			}
 		} else if (searchQuery.isNotEmpty()) {
 			Text(
-				text = "No results found", // Resource needed
+				text = stringResource(R.string.fragment_mediathek_no_results),
 				modifier = Modifier.padding(top = 32.dp),
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)

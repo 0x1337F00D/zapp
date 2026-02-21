@@ -1,4 +1,4 @@
-package de.christinecoenen.code.zapp.tv.mediathek
+package de.christinecoenen.code.zapp.app.mediathek.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @OptIn(FlowPreview::class)
-class MediathekComposeViewModel(
+class MediathekUiViewModel(
 	private val mediathekRepository: MediathekRepository,
 	private val channelRepository: ChannelRepository,
 	private val mediathekApiService: IMediathekApiService
@@ -83,6 +83,10 @@ class MediathekComposeViewModel(
 			Timber.e(e, "Search failed")
 			_searchResults.value = emptyList()
 		}
+	}
+
+	fun refresh() {
+		loadData()
 	}
 
 	private fun loadData() {

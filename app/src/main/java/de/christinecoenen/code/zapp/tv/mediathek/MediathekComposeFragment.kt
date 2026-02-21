@@ -26,6 +26,7 @@ import de.christinecoenen.code.zapp.models.shows.MediathekShow
 import de.christinecoenen.code.zapp.repositories.MediathekRepository
 import de.christinecoenen.code.zapp.tv.mediathek.ui.MediathekScreen
 import de.christinecoenen.code.zapp.tv.mediathek.ui.SearchScreen
+import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
 import de.christinecoenen.code.zapp.tv.player.PlayerActivity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -70,7 +71,7 @@ class MediathekComposeFragment : Fragment() {
 @Composable
 fun MediathekApp(
     onShowClick: (MediathekShow) -> Unit,
-    viewModel: MediathekComposeViewModel = koinViewModel()
+    viewModel: MediathekUiViewModel = koinViewModel()
 ) {
     var isSearchVisible by remember { mutableStateOf(false) }
 

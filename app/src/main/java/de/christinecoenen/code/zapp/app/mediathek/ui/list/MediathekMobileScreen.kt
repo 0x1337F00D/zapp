@@ -1,10 +1,10 @@
-package de.christinecoenen.code.zapp.tv.mediathek.ui
+package de.christinecoenen.code.zapp.app.mediathek.ui.list
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -14,7 +14,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,33 +38,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.tv.foundation.lazy.list.TvLazyColumn
-import androidx.tv.foundation.lazy.list.TvLazyRow
-import androidx.tv.foundation.lazy.list.items
-import androidx.tv.material3.Button
-import androidx.tv.material3.Card
-import androidx.tv.material3.CardDefaults
-import androidx.tv.material3.Carousel
-import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.Icon
-import androidx.tv.material3.IconButton
-import androidx.tv.material3.MaterialTheme
-import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import de.christinecoenen.code.zapp.R
+import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
 import de.christinecoenen.code.zapp.models.channels.ChannelModel
 import de.christinecoenen.code.zapp.models.shows.MediathekShow
-import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun MediathekScreen(
+fun MediathekMobileScreen(
 	onShowClick: (MediathekShow) -> Unit,
-	onSearchClick: () -> Unit,
 	viewModel: MediathekUiViewModel = koinViewModel()
 ) {
 	val heroShow by viewModel.heroShow.collectAsState()
@@ -63,24 +59,12 @@ fun MediathekScreen(
 	val broadcasters by viewModel.broadcasters.collectAsState()
 	val genres = viewModel.genres
 
-	Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-		// Top Bar with Search
-		Box(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(16.dp),
-			contentAlignment = Alignment.CenterEnd
-		) {
-			IconButton(onClick = onSearchClick) {
-				Icon(
-					painter = painterResource(id = R.drawable.ic_baseline_search_24),
-					contentDescription = stringResource(R.string.menu_search)
-				)
-			}
-		}
-
-		TvLazyColumn(
-			contentPadding = PaddingValues(bottom = 32.dp),
+	Surface(
+		modifier = Modifier.fillMaxSize(),
+		color = MaterialTheme.colorScheme.background
+	) {
+		LazyColumn(
+			contentPadding = PaddingValues(bottom = 80.dp), // Space for bottom nav
 			verticalArrangement = Arrangement.spacedBy(24.dp)
 		) {
 			// Hero Section
@@ -107,7 +91,7 @@ fun MediathekScreen(
 			if (newShows.isNotEmpty()) {
 				item {
 					ShowRow(
-						title = stringResource(R.string.activity_main_tab_mediathek), // "Mediathek" or "New"
+						title = stringResource(R.string.activity_main_tab_mediathek),
 						shows = newShows,
 						viewModel = viewModel,
 						onShowClick = onShowClick
@@ -136,76 +120,78 @@ fun MediathekScreen(
 	}
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun HeroSection(
 	show: MediathekShow,
 	channel: ChannelModel?,
 	onShowClick: (MediathekShow) -> Unit
 ) {
-	val backgroundColor = channel?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.secondaryContainer
+	val backgroundColor = channel?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.primaryContainer
 
-	Carousel(
-		itemCount = 1,
+	Box(
 		modifier = Modifier
 			.fillMaxWidth()
-			.height(300.dp)
-			.padding(horizontal = 32.dp)
-	) { _ ->
+			.height(400.dp)
+	) {
+		// Background
 		Box(
 			modifier = Modifier
 				.fillMaxSize()
-				.background(
-					brush = Brush.horizontalGradient(
-						colors = listOf(
-							backgroundColor,
-							backgroundColor.copy(alpha = 0.6f),
-							Color.Transparent
+				.background(backgroundColor)
+		) {
+			// Gradient Overlay
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.background(
+						Brush.verticalGradient(
+							colors = listOf(
+								Color.Transparent,
+								MaterialTheme.colorScheme.background
+							)
 						)
 					)
-				)
+			)
+		}
+
+		// Content
+		Column(
+			modifier = Modifier
+				.align(Alignment.BottomStart)
+				.padding(16.dp)
+				.fillMaxWidth()
 		) {
-			// Content
-			Column(
-				modifier = Modifier
-					.align(Alignment.BottomStart)
-					.padding(32.dp)
-					.fillMaxWidth(0.6f)
+			channel?.let {
+				AsyncImage(
+					model = it.logoUrl,
+					contentDescription = null,
+					modifier = Modifier
+						.height(32.dp)
+						.padding(bottom = 8.dp),
+					contentScale = ContentScale.Fit,
+					placeholder = painterResource(it.drawableId),
+					error = painterResource(it.drawableId)
+				)
+			}
+			Text(
+				text = show.title,
+				style = MaterialTheme.typography.displaySmall,
+				fontWeight = FontWeight.Bold,
+				color = MaterialTheme.colorScheme.onBackground,
+				maxLines = 2,
+				overflow = TextOverflow.Ellipsis
+			)
+			Text(
+				text = "${show.topic} • ${show.formattedDuration}",
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+				modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+			)
+			Button(
+				onClick = { onShowClick(show) },
+				modifier = Modifier.fillMaxWidth()
 			) {
-				channel?.let {
-					AsyncImage(
-						model = it.logoUrl,
-						contentDescription = null,
-						modifier = Modifier
-							.height(40.dp)
-							.padding(bottom = 8.dp),
-						contentScale = ContentScale.Fit,
-						placeholder = painterResource(it.drawableId),
-						error = painterResource(it.drawableId)
-					)
-				}
-				Text(
-					text = show.title,
-					style = MaterialTheme.typography.displaySmall,
-					color = Color.White,
-					maxLines = 2,
-					overflow = TextOverflow.Ellipsis
-				)
-				Text(
-					text = "${show.topic} • ${show.formattedDuration}",
-					style = MaterialTheme.typography.bodyMedium,
-					color = Color.White.copy(alpha = 0.8f),
-					modifier = Modifier.padding(top = 8.dp)
-				)
-				Spacer(modifier = Modifier.height(16.dp))
-				Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-					Button(onClick = { onShowClick(show) }) {
-						Text(text = stringResource(R.string.action_play))
-					}
-					Button(onClick = { /* TODO: Implement watchlist toggle */ }) {
-						Text(text = stringResource(R.string.activity_main_tab_bookmarks))
-					}
-				}
+				Text(text = stringResource(R.string.action_play))
 			}
 		}
 	}
@@ -222,11 +208,12 @@ fun ShowRow(
 		Text(
 			text = title,
 			style = MaterialTheme.typography.titleMedium,
-			modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
+			fontWeight = FontWeight.Bold,
+			modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
 		)
-		TvLazyRow(
-			contentPadding = PaddingValues(horizontal = 32.dp),
-			horizontalArrangement = Arrangement.spacedBy(16.dp)
+		LazyRow(
+			contentPadding = PaddingValues(horizontal = 16.dp),
+			horizontalArrangement = Arrangement.spacedBy(8.dp)
 		) {
 			items(shows) { show ->
 				val channel = remember(show.channel) { viewModel.getChannelModel(show.channel) }
@@ -236,7 +223,6 @@ fun ShowRow(
 	}
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun ShowCard(
 	show: MediathekShow,
@@ -248,11 +234,12 @@ fun ShowCard(
 	Card(
 		onClick = { onShowClick(show) },
 		modifier = Modifier
-			.width(200.dp)
-			.aspectRatio(16f / 9f),
-		scale = CardDefaults.scale(focusedScale = 1.1f)
+			.width(140.dp)
+			.aspectRatio(2f / 3f), // Portrait aspect ratio for mobile cards look good
+		shape = RoundedCornerShape(8.dp),
+		colors = CardDefaults.cardColors(containerColor = backgroundColor)
 	) {
-		Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
+		Box(modifier = Modifier.fillMaxSize()) {
 			// Background Logo
 			channel?.let {
 				AsyncImage(
@@ -260,24 +247,24 @@ fun ShowCard(
 					contentDescription = null,
 					modifier = Modifier
 						.fillMaxSize()
-						.padding(32.dp)
-						.alpha(0.2f),
+						.padding(24.dp)
+						.alpha(0.1f),
 					contentScale = ContentScale.Fit,
 					placeholder = painterResource(it.drawableId),
 					error = painterResource(it.drawableId)
 				)
 			}
 
-			// Foreground Content
+			// Content
 			Column(
 				modifier = Modifier
 					.align(Alignment.BottomStart)
-					.padding(12.dp)
+					.padding(8.dp)
 			) {
 				Text(
 					text = show.title,
-					style = MaterialTheme.typography.bodyMedium,
-					maxLines = 2,
+					style = MaterialTheme.typography.labelMedium,
+					maxLines = 3,
 					overflow = TextOverflow.Ellipsis,
 					color = Color.White
 				)
@@ -300,45 +287,51 @@ fun ChannelRow(
 		Text(
 			text = title,
 			style = MaterialTheme.typography.titleMedium,
-			modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
+			fontWeight = FontWeight.Bold,
+			modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
 		)
-		TvLazyRow(
-			contentPadding = PaddingValues(horizontal = 32.dp),
+		LazyRow(
+			contentPadding = PaddingValues(horizontal = 16.dp),
 			horizontalArrangement = Arrangement.spacedBy(16.dp)
 		) {
 			items(channels) { channel ->
-				ChannelCard(channel = channel)
+				ChannelCircle(channel = channel)
 			}
 		}
 	}
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun ChannelCard(channel: ChannelModel) {
-	Card(
-		onClick = { /* TODO: Navigate to channel filter */ },
-		modifier = Modifier.size(80.dp),
-		shape = CardDefaults.shape(shape = CircleShape),
-		scale = CardDefaults.scale(focusedScale = 1.1f)
-	) {
-		Box(
+fun ChannelCircle(channel: ChannelModel) {
+	Column(horizontalAlignment = Alignment.CenterHorizontally) {
+		Surface(
 			modifier = Modifier
-				.fillMaxSize()
-				.background(Color.White), // Channels usually have white/transparent logos
-			contentAlignment = Alignment.Center
+				.size(64.dp)
+				.clip(CircleShape)
+				.clickable { /* TODO: Navigate to channel */ },
+			color = Color.White,
+			shadowElevation = 4.dp
 		) {
-			AsyncImage(
-				model = channel.logoUrl,
-				contentDescription = channel.name,
-				modifier = Modifier
-					.padding(16.dp)
-					.fillMaxSize(),
-				contentScale = ContentScale.Fit,
-				placeholder = painterResource(channel.drawableId),
-				error = painterResource(channel.drawableId)
-			)
+			Box(contentAlignment = Alignment.Center) {
+				AsyncImage(
+					model = channel.logoUrl,
+					contentDescription = channel.name,
+					modifier = Modifier.padding(12.dp),
+					contentScale = ContentScale.Fit,
+					placeholder = painterResource(channel.drawableId),
+					error = painterResource(channel.drawableId)
+				)
+			}
 		}
+		Spacer(modifier = Modifier.height(4.dp))
+		Text(
+			text = channel.name,
+			style = MaterialTheme.typography.labelSmall,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis,
+			modifier = Modifier.width(64.dp),
+			textAlign = androidx.compose.ui.text.style.TextAlign.Center
+		)
 	}
 }
 
@@ -351,11 +344,12 @@ fun GenreRow(
 		Text(
 			text = title,
 			style = MaterialTheme.typography.titleMedium,
-			modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
+			fontWeight = FontWeight.Bold,
+			modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
 		)
-		TvLazyRow(
-			contentPadding = PaddingValues(horizontal = 32.dp),
-			horizontalArrangement = Arrangement.spacedBy(12.dp)
+		LazyRow(
+			contentPadding = PaddingValues(horizontal = 16.dp),
+			horizontalArrangement = Arrangement.spacedBy(8.dp)
 		) {
 			items(genres) { genre ->
 				GenreChip(genre = genre)
@@ -364,13 +358,12 @@ fun GenreRow(
 	}
 }
 
-@OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun GenreChip(genre: String) {
-	Card(
-		onClick = { /* TODO: Navigate to genre filter */ },
-		colors = CardDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-		scale = CardDefaults.scale(focusedScale = 1.1f)
+	Surface(
+		shape = RoundedCornerShape(16.dp),
+		color = MaterialTheme.colorScheme.surfaceVariant,
+		modifier = Modifier.clickable { /* TODO: Navigate to genre */ }
 	) {
 		Text(
 			text = genre,
