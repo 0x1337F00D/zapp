@@ -56,6 +56,7 @@ fun MediathekMobileScreen(
 	val heroShow by viewModel.heroShow.collectAsState()
 	val newShows by viewModel.newShows.collectAsState()
 	val continueWatching by viewModel.continueWatching.collectAsState()
+	val series by viewModel.series.collectAsState()
 	val broadcasters by viewModel.broadcasters.collectAsState()
 	val genres = viewModel.genres
 
@@ -88,8 +89,6 @@ fun MediathekMobileScreen(
 			}
 
 			// New Shows
-			val series by viewModel.series.collectAsState()
-
 			if (series.isNotEmpty()) {
 				items(series) { singleSeries ->
 					ShowRow(
