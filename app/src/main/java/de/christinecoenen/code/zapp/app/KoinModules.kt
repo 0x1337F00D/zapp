@@ -24,6 +24,7 @@ import de.christinecoenen.code.zapp.app.player.Player
 import de.christinecoenen.code.zapp.app.search.SearchViewModel
 import de.christinecoenen.code.zapp.app.settings.repository.SettingsRepository
 import de.christinecoenen.code.zapp.app.zattoo.ZattooService
+import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
 import de.christinecoenen.code.zapp.models.channels.json.JsonChannelList
 import de.christinecoenen.code.zapp.persistence.Database
 import de.christinecoenen.code.zapp.repositories.ChannelRepository
@@ -94,6 +95,7 @@ class KoinModules {
 			viewModel { MediathekFilterViewModel() }
 			viewModel { ShowMenuHelperViewModel(get(), get()) }
 			viewModel { SearchViewModel(get(), get(), get(), get()) }
+			viewModel { MediathekUiViewModel(get(), get(), get()) }
 		}
 
 	}

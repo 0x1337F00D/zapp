@@ -1,0 +1,398 @@
+package de.christinecoenen.code.zapp.tv.mediathek.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.tv.foundation.lazy.list.TvLazyColumn
+import androidx.tv.foundation.lazy.list.TvLazyRow
+import androidx.tv.foundation.lazy.list.items
+import androidx.tv.material3.Button
+import androidx.tv.material3.Card
+import androidx.tv.material3.CardDefaults
+import androidx.tv.material3.Carousel
+import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Icon
+import androidx.tv.material3.IconButton
+import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Text
+import coil.compose.AsyncImage
+import de.christinecoenen.code.zapp.R
+import de.christinecoenen.code.zapp.models.channels.ChannelModel
+import de.christinecoenen.code.zapp.models.shows.MediathekShow
+import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
+import org.koin.androidx.compose.koinViewModel
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun MediathekScreen(
+	onShowClick: (MediathekShow) -> Unit,
+	onSearchClick: () -> Unit,
+	viewModel: MediathekUiViewModel = koinViewModel()
+) {
+	val heroShow by viewModel.heroShow.collectAsState()
+	val newShows by viewModel.newShows.collectAsState()
+	val continueWatching by viewModel.continueWatching.collectAsState()
+	val series by viewModel.series.collectAsState()
+	val broadcasters by viewModel.broadcasters.collectAsState()
+	val genres = viewModel.genres
+
+	Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+		// Top Bar with Search
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(16.dp),
+			contentAlignment = Alignment.CenterEnd
+		) {
+			IconButton(onClick = onSearchClick) {
+				Icon(
+					painter = painterResource(id = R.drawable.ic_baseline_search_24),
+					contentDescription = stringResource(R.string.menu_search)
+				)
+			}
+		}
+
+		TvLazyColumn(
+			contentPadding = PaddingValues(bottom = 32.dp),
+			verticalArrangement = Arrangement.spacedBy(24.dp)
+		) {
+			// Hero Section
+			item {
+				heroShow?.let { show ->
+					val channel = remember(show.channel) { viewModel.getChannelModel(show.channel) }
+					HeroSection(show = show, channel = channel, onShowClick = onShowClick)
+				}
+			}
+
+			// Continue Watching
+			if (continueWatching.isNotEmpty()) {
+				item {
+					ShowRow(
+						title = stringResource(R.string.activity_main_tab_continue_watching),
+						shows = continueWatching,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			}
+
+			// New Shows
+			if (series.isNotEmpty()) {
+				items(series) { singleSeries ->
+					ShowRow(
+						title = singleSeries.title,
+						shows = singleSeries.shows,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			} else if (newShows.isNotEmpty()) {
+				// Fallback to flat list if no series grouping found (or while loading)
+				item {
+					ShowRow(
+						title = stringResource(R.string.activity_main_tab_mediathek),
+						shows = newShows,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			}
+
+			// Broadcasters
+			if (broadcasters.isNotEmpty()) {
+				item {
+					ChannelRow(
+						title = stringResource(R.string.fragment_mediathek_channel),
+						channels = broadcasters
+					)
+				}
+			}
+
+			// Genres
+			item {
+				GenreRow(
+					title = stringResource(R.string.menu_filter),
+					genres = genres
+				)
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun HeroSection(
+	show: MediathekShow,
+	channel: ChannelModel?,
+	onShowClick: (MediathekShow) -> Unit
+) {
+	val backgroundColor = channel?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.secondaryContainer
+
+	Carousel(
+		itemCount = 1,
+		modifier = Modifier
+			.fillMaxWidth()
+			.height(300.dp)
+			.padding(horizontal = 32.dp)
+	) { _ ->
+		Box(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(
+					brush = Brush.horizontalGradient(
+						colors = listOf(
+							backgroundColor,
+							backgroundColor.copy(alpha = 0.6f),
+							Color.Transparent
+						)
+					)
+				)
+		) {
+			// Content
+			Column(
+				modifier = Modifier
+					.align(Alignment.BottomStart)
+					.padding(32.dp)
+					.fillMaxWidth(0.6f)
+			) {
+				channel?.let {
+					AsyncImage(
+						model = it.logoUrl,
+						contentDescription = null,
+						modifier = Modifier
+							.height(40.dp)
+							.padding(bottom = 8.dp),
+						contentScale = ContentScale.Fit,
+						placeholder = painterResource(it.drawableId),
+						error = painterResource(it.drawableId)
+					)
+				}
+				Text(
+					text = show.title,
+					style = MaterialTheme.typography.displaySmall,
+					color = Color.White,
+					maxLines = 2,
+					overflow = TextOverflow.Ellipsis
+				)
+				Text(
+					text = "${show.topic} • ${show.formattedDuration}",
+					style = MaterialTheme.typography.bodyMedium,
+					color = Color.White.copy(alpha = 0.8f),
+					modifier = Modifier.padding(top = 8.dp)
+				)
+				Spacer(modifier = Modifier.height(16.dp))
+				Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+					Button(onClick = { onShowClick(show) }) {
+						Text(text = stringResource(R.string.action_play))
+					}
+					Button(onClick = { /* TODO: Implement watchlist toggle */ }) {
+						Text(text = stringResource(R.string.activity_main_tab_bookmarks))
+					}
+				}
+			}
+		}
+	}
+}
+
+@Composable
+fun ShowRow(
+	title: String,
+	shows: List<MediathekShow>,
+	viewModel: MediathekUiViewModel,
+	onShowClick: (MediathekShow) -> Unit
+) {
+	Column(modifier = Modifier.fillMaxWidth()) {
+		Text(
+			text = title,
+			style = MaterialTheme.typography.titleMedium,
+			modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
+		)
+		TvLazyRow(
+			contentPadding = PaddingValues(horizontal = 32.dp),
+			horizontalArrangement = Arrangement.spacedBy(16.dp)
+		) {
+			items(shows) { show ->
+				val channel = remember(show.channel) { viewModel.getChannelModel(show.channel) }
+				ShowCard(show = show, channel = channel, onShowClick = onShowClick)
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun ShowCard(
+	show: MediathekShow,
+	channel: ChannelModel?,
+	onShowClick: (MediathekShow) -> Unit
+) {
+	// Generate a stable color based on topic if no channel color or to differentiate
+	val topicColor = remember(show.topic) {
+		Color(show.topic.hashCode() or 0xFF000000.toInt())
+	}
+
+	val backgroundColor = channel?.color?.let { Color(it) } ?: topicColor
+
+	Card(
+		onClick = { onShowClick(show) },
+		modifier = Modifier
+			.width(220.dp)
+			.aspectRatio(16f / 9f),
+		scale = CardDefaults.scale(focusedScale = 1.1f)
+	) {
+		Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
+			// Background Logo
+			channel?.let {
+				AsyncImage(
+					model = it.logoUrl,
+					contentDescription = null,
+					modifier = Modifier
+						.fillMaxSize()
+						.padding(16.dp)
+						.alpha(0.15f)
+						.align(Alignment.CenterEnd),
+					contentScale = ContentScale.Fit,
+					placeholder = painterResource(it.drawableId),
+					error = painterResource(it.drawableId)
+				)
+			}
+
+			// Foreground Content
+			Column(
+				modifier = Modifier
+					.align(Alignment.BottomStart)
+					.padding(12.dp)
+			) {
+				Text(
+					text = show.title,
+					style = MaterialTheme.typography.bodyMedium,
+					maxLines = 2,
+					overflow = TextOverflow.Ellipsis,
+					color = Color.White
+				)
+				Text(
+					text = show.formattedDuration,
+					style = MaterialTheme.typography.labelSmall,
+					color = Color.White.copy(alpha = 0.7f)
+				)
+			}
+		}
+	}
+}
+
+@Composable
+fun ChannelRow(
+	title: String,
+	channels: List<ChannelModel>
+) {
+	Column(modifier = Modifier.fillMaxWidth()) {
+		Text(
+			text = title,
+			style = MaterialTheme.typography.titleMedium,
+			modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
+		)
+		TvLazyRow(
+			contentPadding = PaddingValues(horizontal = 32.dp),
+			horizontalArrangement = Arrangement.spacedBy(16.dp)
+		) {
+			items(channels) { channel ->
+				ChannelCard(channel = channel)
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun ChannelCard(channel: ChannelModel) {
+	Card(
+		onClick = { /* TODO: Navigate to channel filter */ },
+		modifier = Modifier.size(80.dp),
+		shape = CardDefaults.shape(shape = CircleShape),
+		scale = CardDefaults.scale(focusedScale = 1.1f)
+	) {
+		Box(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(Color.White), // Channels usually have white/transparent logos
+			contentAlignment = Alignment.Center
+		) {
+			AsyncImage(
+				model = channel.logoUrl,
+				contentDescription = channel.name,
+				modifier = Modifier
+					.padding(16.dp)
+					.fillMaxSize(),
+				contentScale = ContentScale.Fit,
+				placeholder = painterResource(channel.drawableId),
+				error = painterResource(channel.drawableId)
+			)
+		}
+	}
+}
+
+@Composable
+fun GenreRow(
+	title: String,
+	genres: List<String>
+) {
+	Column(modifier = Modifier.fillMaxWidth()) {
+		Text(
+			text = title,
+			style = MaterialTheme.typography.titleMedium,
+			modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
+		)
+		TvLazyRow(
+			contentPadding = PaddingValues(horizontal = 32.dp),
+			horizontalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			items(genres) { genre ->
+				GenreChip(genre = genre)
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun GenreChip(genre: String) {
+	Card(
+		onClick = { /* TODO: Navigate to genre filter */ },
+		colors = CardDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+		scale = CardDefaults.scale(focusedScale = 1.1f)
+	) {
+		Text(
+			text = genre,
+			modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+			style = MaterialTheme.typography.labelMedium
+		)
+	}
+}
