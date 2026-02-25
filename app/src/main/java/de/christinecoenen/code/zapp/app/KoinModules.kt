@@ -4,9 +4,13 @@ import de.christinecoenen.code.zapp.app.livestream.api.IZappBackendApiService
 import de.christinecoenen.code.zapp.app.livestream.api.ZappBackendApiServiceFactory
 import de.christinecoenen.code.zapp.app.livestream.repository.ProgramInfoRepository
 import de.christinecoenen.code.zapp.app.livestream.ui.ProgramInfoViewModel
+import com.google.gson.Gson
 import de.christinecoenen.code.zapp.app.livestream.ui.detail.ChannelPlayerActivityViewModel
 import de.christinecoenen.code.zapp.app.mediathek.api.IMediathekApiService
 import de.christinecoenen.code.zapp.app.mediathek.api.MediathekApiServiceFactory
+import de.christinecoenen.code.zapp.app.mediathek.api.fetcher.ArdMediathekMetadataFetcher
+import de.christinecoenen.code.zapp.app.mediathek.api.fetcher.MediathekMetadataFetcher
+import de.christinecoenen.code.zapp.app.mediathek.api.fetcher.ZdfMediathekMetadataFetcher
 import de.christinecoenen.code.zapp.app.mediathek.controller.downloads.DownloadFileInfoManager
 import de.christinecoenen.code.zapp.app.mediathek.controller.downloads.IDownloadController
 import de.christinecoenen.code.zapp.app.mediathek.controller.downloads.WorkManagerDownloadController
@@ -54,12 +58,16 @@ class KoinModules {
 			single { MainScope() }
 
 			single { Markwon.create(androidContext()) }
+			single { Gson() }
 
 			single { ZattooService(androidContext(), get()) }
 
 			single { ChannelRepository(androidContext(), get(), get(), get()) }
 			single { Database.getInstance(androidContext()) }
-			single { MediathekRepository(get()) }
+			single { MediathekRepository(get(), get()) }
+			single { ArdMediathekMetadataFetcher(get(), get()) }
+			single { ZdfMediathekMetadataFetcher(get(), get()) }
+			single { MediathekMetadataFetcher(get(), get()) }
 			single { SearchRepository(get()) }
 			single { PersistedPlaybackPositionRepository(get()) } bind IPlaybackPositionRepository::class
 			single {

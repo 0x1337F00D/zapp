@@ -4,6 +4,7 @@ import androidx.paging.PagingSource
 import de.christinecoenen.code.zapp.app.mediathek.api.request.MediathekChannel
 import de.christinecoenen.code.zapp.models.shows.DownloadStatus
 import de.christinecoenen.code.zapp.models.shows.MediathekShow
+import de.christinecoenen.code.zapp.app.mediathek.api.fetcher.MediathekMetadataFetcher
 import de.christinecoenen.code.zapp.models.shows.PersistedMediathekShow
 import de.christinecoenen.code.zapp.models.shows.SortableMediathekShow
 import de.christinecoenen.code.zapp.persistence.Database
@@ -17,7 +18,10 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import org.joda.time.DateTime
 
-class MediathekRepository(private val database: Database) {
+class MediathekRepository(
+	private val database: Database,
+	private val mediathekMetadataFetcher: MediathekMetadataFetcher
+) {
 
 	fun getPersonalShows(
 		searchQuery: String,
@@ -95,6 +99,27 @@ class MediathekRepository(private val database: Database) {
 			.mediathekShowDao()
 			.update(show!!)
 	}
+
+	suspend fun fetchAndPersistShowDetails(persistedShow: PersistedMediathekShow) =
+		withContext(Dispatchers.IO) {
+			val show = persistedShow.mediathekShow
+			if (show.websiteUrl.isNullOrEmpty()) return@withContext
+
+			// Optimisation: check if we already have the data
+			if (show.seasonNumber != null && show.episodeNumber != null) {
+				return@withContext
+			}
+
+			try {
+				val updatedShow = mediathekMetadataFetcher.fetch(show)
+				if (updatedShow != show) {
+					persistedShow.updateMediathekShow(updatedShow)
+					updateShow(persistedShow)
+				}
+			} catch (e: Exception) {
+				// Ignore errors
+			}
+		}
 
 	suspend fun updateDownloadProgress(downloadId: Int, progress: Int) =
 		withContext(Dispatchers.IO) {

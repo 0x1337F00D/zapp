@@ -87,28 +87,28 @@ class MediathekDetailFragment : Fragment() {
 	}
 
 	private suspend fun loadOrPersistShowFromArguments() {
-		if (args.mediathekShow != null) {
+		val showId = if (args.mediathekShow != null) {
 			// persist show if passed to this fragment
-			val persistedShow = mediathekRepository
+			mediathekRepository
 				.persistOrUpdateShow(args.mediathekShow!!)
 				.first()
-
-			onShowLoaded(persistedShow)
+				.id
 		} else {
-			// load existing persisted show from id
-			val persistedShow = mediathekRepository
-				.getPersistedShow(args.persistedShowId)
-				.first()
-
-			onShowLoaded(persistedShow)
+			args.persistedShowId
 		}
+
+		mediathekRepository
+			.getPersistedShow(showId)
+			.collect { persistedShow ->
+				onShowLoaded(persistedShow)
+			}
 	}
 
 	private fun onShowLoaded(persistedMediathekShow: PersistedMediathekShow) {
 		this.persistedMediathekShow = persistedMediathekShow
 
 		val show = persistedMediathekShow.mediathekShow
-		binding.texts.topic.text = show.topic
+		binding.texts.topic.text = show.seriesTitle ?: show.topic
 		binding.texts.title.text = show.title
 		binding.texts.description.text = show.description
 		binding.time.text = show.formattedTimestamp
@@ -142,6 +142,10 @@ class MediathekDetailFragment : Fragment() {
 			mediathekRepository
 				.getPlaybackPositionPercent(show.apiId)
 				.collect(::updatePlaybackPosition)
+		}
+
+		viewLifecycleOwner.launchOnCreated {
+			mediathekRepository.fetchAndPersistShowDetails(persistedMediathekShow)
 		}
 
 		updateVideoThumbnail()
