@@ -147,6 +147,10 @@ class MediathekUiViewModel(
 	fun toggleBookmark(show: MediathekShow) {
 		viewModelScope.launch {
 			val isBookmarked = bookmarkedIds.value.contains(show.apiId)
+			if (!isBookmarked) {
+				// ensure show is persisted before bookmarking
+				mediathekRepository.persistOrUpdateShow(show).first()
+			}
 			mediathekRepository.setBookmarked(show.apiId, !isBookmarked)
 		}
 	}
