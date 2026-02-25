@@ -80,6 +80,22 @@ class MediathekRepository(
 			.getAllBookarked("%$searchQuery%")
 	}
 
+	fun getBookmarkedIds(): Flow<List<String>> {
+		return database
+			.mediathekShowDao()
+			.getBookmarkedIds()
+			.distinctUntilChanged()
+			.flowOn(Dispatchers.IO)
+	}
+
+	fun getStartedPersisted(limit: Int): Flow<List<PersistedMediathekShow>> {
+		return database
+			.mediathekShowDao()
+			.getStartedPersisted(limit)
+			.distinctUntilChanged()
+			.flowOn(Dispatchers.IO)
+	}
+
 	suspend fun persistOrUpdateShow(show: MediathekShow): Flow<PersistedMediathekShow> =
 		withContext(Dispatchers.IO) {
 			database

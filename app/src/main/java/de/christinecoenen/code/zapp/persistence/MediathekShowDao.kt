@@ -66,6 +66,12 @@ interface MediathekShowDao {
 	@Query("SELECT * FROM PersistedMediathekShow WHERE bookmarked ORDER BY bookmarkedAt DESC LIMIT :limit")
 	fun getBookmarked(limit: Int): Flow<List<MediathekShow>>
 
+	@Query("SELECT apiId FROM PersistedMediathekShow WHERE bookmarked")
+	fun getBookmarkedIds(): Flow<List<String>>
+
+	@Query("SELECT * FROM PersistedMediathekShow WHERE playbackPosition > 0 ORDER BY lastPlayedBackAt DESC LIMIT :limit")
+	fun getStartedPersisted(limit: Int): Flow<List<PersistedMediathekShow>>
+
 	@Query("SELECT * FROM PersistedMediathekShow WHERE id=:id")
 	fun getFromId(id: Int): Flow<PersistedMediathekShow>
 

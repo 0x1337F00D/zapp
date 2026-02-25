@@ -6,6 +6,7 @@ import de.christinecoenen.code.zapp.app.mediathek.api.IMediathekApiService
 import de.christinecoenen.code.zapp.app.mediathek.api.request.QueryRequest
 import de.christinecoenen.code.zapp.models.channels.ChannelModel
 import de.christinecoenen.code.zapp.models.shows.MediathekShow
+import de.christinecoenen.code.zapp.models.shows.PersistedMediathekShow
 import de.christinecoenen.code.zapp.repositories.ChannelRepository
 import de.christinecoenen.code.zapp.repositories.MediathekRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,9 +51,18 @@ class MediathekUiViewModel(
 	private val _broadcasters = MutableStateFlow<List<ChannelModel>>(emptyList())
 	val broadcasters: StateFlow<List<ChannelModel>> = _broadcasters.asStateFlow()
 
-	val continueWatching: StateFlow<List<MediathekShow>> = mediathekRepository
-		.getStarted(10)
+	val continueWatching: StateFlow<List<PersistedMediathekShow>> = mediathekRepository
+		.getStartedPersisted(10)
 		.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+	val bookmarkedShows: StateFlow<List<MediathekShow>> = mediathekRepository
+		.getBookmarked(20)
+		.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+	val bookmarkedIds: StateFlow<Set<String>> = mediathekRepository
+		.getBookmarkedIds()
+		.map { it.toSet() }
+		.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
 	// Static list of popular genres/topics
 	val genres = listOf(
@@ -132,5 +142,12 @@ class MediathekUiViewModel(
 	fun getChannelModel(channelId: String): ChannelModel? {
 		// Try to find by ID or name
 		return _broadcasters.value.find { it.id == channelId || it.name == channelId }
+	}
+
+	fun toggleBookmark(show: MediathekShow) {
+		viewModelScope.launch {
+			val isBookmarked = bookmarkedIds.value.contains(show.apiId)
+			mediathekRepository.setBookmarked(show.apiId, !isBookmarked)
+		}
 	}
 }

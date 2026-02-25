@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -60,9 +61,15 @@ fun MediathekScreen(
 	val heroShow by viewModel.heroShow.collectAsState()
 	val newShows by viewModel.newShows.collectAsState()
 	val continueWatching by viewModel.continueWatching.collectAsState()
+	val bookmarkedShows by viewModel.bookmarkedShows.collectAsState()
+	val bookmarkedIds by viewModel.bookmarkedIds.collectAsState()
 	val series by viewModel.series.collectAsState()
 	val broadcasters by viewModel.broadcasters.collectAsState()
 	val genres = viewModel.genres
+
+	val progressMap = remember(continueWatching) {
+		continueWatching.associate { it.mediathekShow.apiId to (if (it.videoDuration > 0) it.playbackPosition.toFloat() / it.videoDuration else 0f) }
+	}
 
 	Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
 		// Top Bar with Search
@@ -88,7 +95,14 @@ fun MediathekScreen(
 			item {
 				heroShow?.let { show ->
 					val channel = remember(show.channel) { viewModel.getChannelModel(show.channel) }
-					HeroSection(show = show, channel = channel, onShowClick = onShowClick)
+					val isBookmarked = bookmarkedIds.contains(show.apiId)
+					HeroSection(
+						show = show,
+						channel = channel,
+						isBookmarked = isBookmarked,
+						onShowClick = onShowClick,
+						onBookmarkClick = { viewModel.toggleBookmark(show) }
+					)
 				}
 			}
 
@@ -97,7 +111,23 @@ fun MediathekScreen(
 				item {
 					ShowRow(
 						title = stringResource(R.string.activity_main_tab_continue_watching),
-						shows = continueWatching,
+						shows = continueWatching.map { it.mediathekShow },
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			}
+
+			// Bookmarks
+			if (bookmarkedShows.isNotEmpty()) {
+				item {
+					ShowRow(
+						title = stringResource(R.string.activity_main_tab_bookmarks),
+						shows = bookmarkedShows,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
 						viewModel = viewModel,
 						onShowClick = onShowClick
 					)
@@ -110,6 +140,8 @@ fun MediathekScreen(
 					ShowRow(
 						title = singleSeries.title,
 						shows = singleSeries.shows,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
 						viewModel = viewModel,
 						onShowClick = onShowClick
 					)
@@ -120,6 +152,8 @@ fun MediathekScreen(
 					ShowRow(
 						title = stringResource(R.string.activity_main_tab_mediathek),
 						shows = newShows,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
 						viewModel = viewModel,
 						onShowClick = onShowClick
 					)
@@ -152,7 +186,9 @@ fun MediathekScreen(
 fun HeroSection(
 	show: MediathekShow,
 	channel: ChannelModel?,
-	onShowClick: (MediathekShow) -> Unit
+	isBookmarked: Boolean,
+	onShowClick: (MediathekShow) -> Unit,
+	onBookmarkClick: () -> Unit
 ) {
 	val backgroundColor = channel?.color?.let { Color(it) } ?: MaterialTheme.colorScheme.secondaryContainer
 
@@ -213,8 +249,16 @@ fun HeroSection(
 					Button(onClick = { onShowClick(show) }) {
 						Text(text = stringResource(R.string.action_play))
 					}
-					Button(onClick = { /* TODO: Implement watchlist toggle */ }) {
-						Text(text = stringResource(R.string.activity_main_tab_bookmarks))
+					Button(onClick = onBookmarkClick) {
+						val icon = if (isBookmarked) R.drawable.ic_baseline_bookmark_24 else R.drawable.ic_baseline_bookmark_border_24
+						Row(verticalAlignment = Alignment.CenterVertically) {
+							Icon(
+								painter = painterResource(id = icon),
+								contentDescription = null,
+								modifier = Modifier.padding(end = 8.dp).size(20.dp)
+							)
+							Text(text = stringResource(R.string.activity_main_tab_bookmarks))
+						}
 					}
 				}
 			}
@@ -226,6 +270,8 @@ fun HeroSection(
 fun ShowRow(
 	title: String,
 	shows: List<MediathekShow>,
+	progressMap: Map<String, Float> = emptyMap(),
+	bookmarkedIds: Set<String> = emptySet(),
 	viewModel: MediathekUiViewModel,
 	onShowClick: (MediathekShow) -> Unit
 ) {
@@ -241,7 +287,9 @@ fun ShowRow(
 		) {
 			items(shows) { show ->
 				val channel = remember(show.channel) { viewModel.getChannelModel(show.channel) }
-				ShowCard(show = show, channel = channel, onShowClick = onShowClick)
+				val progress = progressMap[show.apiId] ?: 0f
+				val isBookmarked = bookmarkedIds.contains(show.apiId)
+				ShowCard(show = show, channel = channel, progress = progress, isBookmarked = isBookmarked, onShowClick = onShowClick)
 			}
 		}
 	}
@@ -252,6 +300,8 @@ fun ShowRow(
 fun ShowCard(
 	show: MediathekShow,
 	channel: ChannelModel?,
+	progress: Float = 0f,
+	isBookmarked: Boolean = false,
 	onShowClick: (MediathekShow) -> Unit
 ) {
 	// Generate a stable color based on topic if no channel color or to differentiate
@@ -302,6 +352,37 @@ fun ShowCard(
 					text = show.formattedDuration,
 					style = MaterialTheme.typography.labelSmall,
 					color = Color.White.copy(alpha = 0.7f)
+				)
+			}
+
+			// Progress Bar
+			if (progress > 0) {
+				Box(
+					modifier = Modifier
+						.align(Alignment.BottomStart)
+						.fillMaxWidth()
+						.height(4.dp)
+						.background(Color.White.copy(alpha = 0.3f))
+				) {
+					Box(
+						modifier = Modifier
+							.fillMaxHeight()
+							.fillMaxWidth(progress)
+							.background(MaterialTheme.colorScheme.primary)
+					)
+				}
+			}
+
+			// Bookmark Icon
+			if (isBookmarked) {
+				Icon(
+					painter = painterResource(id = R.drawable.ic_baseline_bookmark_24),
+					contentDescription = null,
+					tint = MaterialTheme.colorScheme.primary,
+					modifier = Modifier
+						.align(Alignment.TopEnd)
+						.padding(8.dp)
+						.size(24.dp)
 				)
 			}
 		}
