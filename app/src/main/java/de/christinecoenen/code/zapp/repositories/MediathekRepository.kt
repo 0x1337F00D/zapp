@@ -18,10 +18,40 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import org.joda.time.DateTime
 
+import de.christinecoenen.code.zapp.app.mediathek.api.IMediathekApiService
+import de.christinecoenen.code.zapp.app.mediathek.api.request.QueryRequest
+
 class MediathekRepository(
 	private val database: Database,
-	private val mediathekMetadataFetcher: MediathekMetadataFetcher
+	private val mediathekMetadataFetcher: MediathekMetadataFetcher,
+	private val mediathekApiService: IMediathekApiService
 ) {
+
+	suspend fun listShows(
+		channel: MediathekChannel? = null,
+		sortBy: String = "timestamp",
+		minDuration: Int = 0,
+		topic: String? = null,
+		size: Int = 20
+	): List<MediathekShow> = withContext(Dispatchers.IO) {
+		val request = QueryRequest().apply {
+			this.size = size
+			this.minDurationSeconds = minDuration
+			this.sortBy = sortBy
+			if (channel != null) {
+				setChannels(listOf(channel))
+			}
+			if (topic != null) {
+				setQueryString(topic)
+			}
+			future = false
+		}
+		try {
+			mediathekApiService.listShows(request).result?.results ?: emptyList()
+		} catch (e: Exception) {
+			emptyList()
+		}
+	}
 
 	fun getPersonalShows(
 		searchQuery: String,

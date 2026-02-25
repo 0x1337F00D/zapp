@@ -14,6 +14,7 @@ import de.christinecoenen.code.zapp.app.mediathek.api.MediathekPagingSource
 import de.christinecoenen.code.zapp.app.mediathek.api.request.MediathekChannel
 import de.christinecoenen.code.zapp.app.mediathek.api.request.QueryRequest
 import de.christinecoenen.code.zapp.app.mediathek.api.result.QueryInfoResult
+import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekSeries
 import de.christinecoenen.code.zapp.app.mediathek.ui.list.adapter.UiModel
 import de.christinecoenen.code.zapp.app.settings.repository.SettingsRepository
 import de.christinecoenen.code.zapp.models.search.Comparison
@@ -23,16 +24,20 @@ import de.christinecoenen.code.zapp.models.shows.MediathekShow
 import de.christinecoenen.code.zapp.models.shows.SortableMediathekShow
 import de.christinecoenen.code.zapp.repositories.MediathekRepository
 import de.christinecoenen.code.zapp.repositories.SearchRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.joda.time.DateTime
 import timber.log.Timber
@@ -127,6 +132,37 @@ class SearchViewModel(
 			}
 		}
 		.cachedIn(viewModelScope)
+
+	val groupedMediathekResult = combine(
+		_submittedSearchQuery,
+		_submittedChannels,
+		_submittedDurationQueries
+	) { query, channels, durations ->
+		if (query.length < 2) return@combine emptyList<MediathekSeries>()
+
+		val queryRequest = QueryRequest().apply {
+			size = 60 // Fetch more for grouping
+			minDurationSeconds = durations.minDurationSeconds ?: 0
+			maxDurationSeconds = durations.maxDurationSeconds
+			setQueryString(query)
+			setChannels(channels.toList())
+		}
+
+		try {
+			val shows = mediathekRepository.listShows(
+				size = 60,
+				minDuration = durations.minDurationSeconds ?: 0,
+				topic = query
+			)
+
+			shows
+				.groupBy { if (!it.seriesTitle.isNullOrEmpty()) it.seriesTitle else it.topic }
+				.map { MediathekSeries(it.key ?: "", it.value) }
+				.sortedByDescending { it.shows.maxOfOrNull { s -> s.timestamp } }
+		} catch (e: Exception) {
+			emptyList()
+		}
+	}.flowOn(Dispatchers.IO).stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
 	val lastQueries = _searchQuery
 		.debounce(100)

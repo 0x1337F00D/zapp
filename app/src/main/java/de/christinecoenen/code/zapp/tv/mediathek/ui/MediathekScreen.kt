@@ -31,7 +31,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.tv.foundation.lazy.grid.TvLazyVerticalGrid
+import androidx.tv.foundation.lazy.grid.TvGridCells
+import androidx.tv.foundation.lazy.grid.items
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyRow
 import androidx.tv.foundation.lazy.list.items
@@ -46,6 +50,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import de.christinecoenen.code.zapp.R
+import de.christinecoenen.code.zapp.app.mediathek.api.request.MediathekChannel
 import de.christinecoenen.code.zapp.models.channels.ChannelModel
 import de.christinecoenen.code.zapp.models.shows.MediathekShow
 import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
@@ -58,14 +63,38 @@ fun MediathekScreen(
 	onSearchClick: () -> Unit,
 	viewModel: MediathekUiViewModel = koinViewModel()
 ) {
-	val heroShow by viewModel.heroShow.collectAsState()
-	val newShows by viewModel.newShows.collectAsState()
+	val selectedChannel by viewModel.selectedChannel.collectAsState()
+
+	BackHandler(enabled = selectedChannel != null) {
+		viewModel.clearSelection()
+	}
+
+	if (selectedChannel != null) {
+		ChannelDetailScreen(
+			onShowClick = onShowClick,
+			onSearchClick = onSearchClick,
+			viewModel = viewModel
+		)
+	} else {
+		MediathekMainScreen(
+			onShowClick = onShowClick,
+			onSearchClick = onSearchClick,
+			viewModel = viewModel
+		)
+	}
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun MediathekMainScreen(
+	onShowClick: (MediathekShow) -> Unit,
+	onSearchClick: () -> Unit,
+	viewModel: MediathekUiViewModel
+) {
 	val continueWatching by viewModel.continueWatching.collectAsState()
 	val bookmarkedShows by viewModel.bookmarkedShows.collectAsState()
 	val bookmarkedIds by viewModel.bookmarkedIds.collectAsState()
-	val series by viewModel.series.collectAsState()
 	val broadcasters by viewModel.broadcasters.collectAsState()
-	val genres = viewModel.genres
 
 	val progressMap = remember(continueWatching) {
 		continueWatching.associate { it.mediathekShow.apiId to (if (it.videoDuration > 0) it.playbackPosition.toFloat() / it.videoDuration else 0f) }
@@ -73,6 +102,114 @@ fun MediathekScreen(
 
 	Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
 		// Top Bar with Search
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(16.dp),
+			contentAlignment = Alignment.CenterEnd
+		) {
+			IconButton(onClick = onSearchClick) {
+				Icon(
+					painter = painterResource(id = R.drawable.ic_baseline_search_24),
+					contentDescription = stringResource(R.string.menu_search)
+				)
+			}
+		}
+
+		TvLazyColumn(
+			contentPadding = PaddingValues(bottom = 32.dp),
+			verticalArrangement = Arrangement.spacedBy(24.dp)
+		) {
+			// Broadcasters Grid
+			item {
+				Text(
+					text = stringResource(R.string.fragment_mediathek_channel),
+					style = MaterialTheme.typography.titleMedium,
+					modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
+				)
+			}
+			item {
+				ChannelGrid(
+					channels = broadcasters,
+					onChannelClick = { channel ->
+						val mediathekChannel = MediathekChannel.entries.find { it.apiId == channel.id }
+						if (mediathekChannel != null) {
+							viewModel.selectChannel(mediathekChannel)
+						}
+					}
+				)
+			}
+
+			// Continue Watching
+			if (continueWatching.isNotEmpty()) {
+				item {
+					ShowRow(
+						title = stringResource(R.string.activity_main_tab_continue_watching),
+						shows = continueWatching.map { it.mediathekShow },
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			}
+
+			// Bookmarks
+			if (bookmarkedShows.isNotEmpty()) {
+				item {
+					ShowRow(
+						title = stringResource(R.string.activity_main_tab_bookmarks),
+						shows = bookmarkedShows,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+fun ChannelGrid(
+	channels: List<ChannelModel>,
+	onChannelClick: (ChannelModel) -> Unit
+) {
+	TvLazyVerticalGrid(
+		columns = TvGridCells.Fixed(5),
+		contentPadding = PaddingValues(horizontal = 32.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp),
+		horizontalArrangement = Arrangement.spacedBy(16.dp),
+		modifier = Modifier.height(200.dp) // Fixed height for grid in list? better separate
+	) {
+		items(channels) { channel ->
+			ChannelCard(channel = channel, onClick = { onChannelClick(channel) })
+		}
+	}
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun ChannelDetailScreen(
+	onShowClick: (MediathekShow) -> Unit,
+	onSearchClick: () -> Unit,
+	viewModel: MediathekUiViewModel
+) {
+	val heroShow by viewModel.heroShow.collectAsState()
+	val newShows by viewModel.channelNewShows.collectAsState()
+	val movies by viewModel.channelMovies.collectAsState()
+	val docs by viewModel.channelDocs.collectAsState()
+	val series by viewModel.channelSeries.collectAsState()
+	val bookmarkedIds by viewModel.bookmarkedIds.collectAsState()
+	val continueWatching by viewModel.continueWatching.collectAsState()
+
+	val progressMap = remember(continueWatching) {
+		continueWatching.associate { it.mediathekShow.apiId to (if (it.videoDuration > 0) it.playbackPosition.toFloat() / it.videoDuration else 0f) }
+	}
+
+	Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+		// Top Bar
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -106,48 +243,8 @@ fun MediathekScreen(
 				}
 			}
 
-			// Continue Watching
-			if (continueWatching.isNotEmpty()) {
-				item {
-					ShowRow(
-						title = stringResource(R.string.activity_main_tab_continue_watching),
-						shows = continueWatching.map { it.mediathekShow },
-						progressMap = progressMap,
-						bookmarkedIds = bookmarkedIds,
-						viewModel = viewModel,
-						onShowClick = onShowClick
-					)
-				}
-			}
-
-			// Bookmarks
-			if (bookmarkedShows.isNotEmpty()) {
-				item {
-					ShowRow(
-						title = stringResource(R.string.activity_main_tab_bookmarks),
-						shows = bookmarkedShows,
-						progressMap = progressMap,
-						bookmarkedIds = bookmarkedIds,
-						viewModel = viewModel,
-						onShowClick = onShowClick
-					)
-				}
-			}
-
 			// New Shows
-			if (series.isNotEmpty()) {
-				items(series) { singleSeries ->
-					ShowRow(
-						title = singleSeries.title,
-						shows = singleSeries.shows,
-						progressMap = progressMap,
-						bookmarkedIds = bookmarkedIds,
-						viewModel = viewModel,
-						onShowClick = onShowClick
-					)
-				}
-			} else if (newShows.isNotEmpty()) {
-				// Fallback to flat list if no series grouping found (or while loading)
+			if (newShows.isNotEmpty()) {
 				item {
 					ShowRow(
 						title = stringResource(R.string.activity_main_tab_mediathek),
@@ -160,22 +257,46 @@ fun MediathekScreen(
 				}
 			}
 
-			// Broadcasters
-			if (broadcasters.isNotEmpty()) {
+			// Movies
+			if (movies.isNotEmpty()) {
 				item {
-					ChannelRow(
-						title = stringResource(R.string.fragment_mediathek_channel),
-						channels = broadcasters
+					ShowRow(
+						title = stringResource(R.string.fragment_mediathek_movies),
+						shows = movies,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
 					)
 				}
 			}
 
-			// Genres
-			item {
-				GenreRow(
-					title = stringResource(R.string.menu_filter),
-					genres = genres
-				)
+			// Docs
+			if (docs.isNotEmpty()) {
+				item {
+					ShowRow(
+						title = stringResource(R.string.fragment_mediathek_docs),
+						shows = docs,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			}
+
+			// Series
+			if (series.isNotEmpty()) {
+				items(series) { singleSeries ->
+					ShowRow(
+						title = singleSeries.title,
+						shows = singleSeries.shows,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
 			}
 		}
 	}
@@ -389,33 +510,12 @@ fun ShowCard(
 	}
 }
 
-@Composable
-fun ChannelRow(
-	title: String,
-	channels: List<ChannelModel>
-) {
-	Column(modifier = Modifier.fillMaxWidth()) {
-		Text(
-			text = title,
-			style = MaterialTheme.typography.titleMedium,
-			modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
-		)
-		TvLazyRow(
-			contentPadding = PaddingValues(horizontal = 32.dp),
-			horizontalArrangement = Arrangement.spacedBy(16.dp)
-		) {
-			items(channels) { channel ->
-				ChannelCard(channel = channel)
-			}
-		}
-	}
-}
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun ChannelCard(channel: ChannelModel) {
+fun ChannelCard(channel: ChannelModel, onClick: () -> Unit) {
 	Card(
-		onClick = { /* TODO: Navigate to channel filter */ },
+		onClick = onClick,
 		modifier = Modifier.size(80.dp),
 		shape = CardDefaults.shape(shape = CircleShape),
 		scale = CardDefaults.scale(focusedScale = 1.1f)
@@ -440,40 +540,3 @@ fun ChannelCard(channel: ChannelModel) {
 	}
 }
 
-@Composable
-fun GenreRow(
-	title: String,
-	genres: List<String>
-) {
-	Column(modifier = Modifier.fillMaxWidth()) {
-		Text(
-			text = title,
-			style = MaterialTheme.typography.titleMedium,
-			modifier = Modifier.padding(start = 32.dp, bottom = 12.dp)
-		)
-		TvLazyRow(
-			contentPadding = PaddingValues(horizontal = 32.dp),
-			horizontalArrangement = Arrangement.spacedBy(12.dp)
-		) {
-			items(genres) { genre ->
-				GenreChip(genre = genre)
-			}
-		}
-	}
-}
-
-@OptIn(ExperimentalTvMaterial3Api::class)
-@Composable
-fun GenreChip(genre: String) {
-	Card(
-		onClick = { /* TODO: Navigate to genre filter */ },
-		colors = CardDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-		scale = CardDefaults.scale(focusedScale = 1.1f)
-	) {
-		Text(
-			text = genre,
-			modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-			style = MaterialTheme.typography.labelMedium
-		)
-	}
-}

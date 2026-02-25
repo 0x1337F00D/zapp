@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,8 +47,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import coil.compose.AsyncImage
 import de.christinecoenen.code.zapp.R
+import de.christinecoenen.code.zapp.app.mediathek.api.request.MediathekChannel
 import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
 import de.christinecoenen.code.zapp.models.channels.ChannelModel
 import de.christinecoenen.code.zapp.models.shows.MediathekShow
@@ -56,14 +61,34 @@ fun MediathekMobileScreen(
 	onShowClick: (MediathekShow) -> Unit,
 	viewModel: MediathekUiViewModel = koinViewModel()
 ) {
-	val heroShow by viewModel.heroShow.collectAsState()
-	val newShows by viewModel.newShows.collectAsState()
+	val selectedChannel by viewModel.selectedChannel.collectAsState()
+
+	BackHandler(enabled = selectedChannel != null) {
+		viewModel.clearSelection()
+	}
+
+	if (selectedChannel != null) {
+		ChannelDetailScreen(
+			onShowClick = onShowClick,
+			viewModel = viewModel
+		)
+	} else {
+		MediathekMainScreen(
+			onShowClick = onShowClick,
+			viewModel = viewModel
+		)
+	}
+}
+
+@Composable
+fun MediathekMainScreen(
+	onShowClick: (MediathekShow) -> Unit,
+	viewModel: MediathekUiViewModel
+) {
 	val continueWatching by viewModel.continueWatching.collectAsState()
 	val bookmarkedShows by viewModel.bookmarkedShows.collectAsState()
 	val bookmarkedIds by viewModel.bookmarkedIds.collectAsState()
-	val series by viewModel.series.collectAsState()
 	val broadcasters by viewModel.broadcasters.collectAsState()
-	val genres = viewModel.genres
 
 	val progressMap = remember(continueWatching) {
 		continueWatching.associate { it.mediathekShow.apiId to (if (it.videoDuration > 0) it.playbackPosition.toFloat() / it.videoDuration else 0f) }
@@ -77,19 +102,25 @@ fun MediathekMobileScreen(
 			contentPadding = PaddingValues(bottom = 80.dp), // Space for bottom nav
 			verticalArrangement = Arrangement.spacedBy(24.dp)
 		) {
-			// Hero Section
+			// Broadcasters Grid
 			item {
-				heroShow?.let { show ->
-					val channel = remember(show.channel) { viewModel.getChannelModel(show.channel) }
-					val isBookmarked = bookmarkedIds.contains(show.apiId)
-					HeroSection(
-						show = show,
-						channel = channel,
-						isBookmarked = isBookmarked,
-						onShowClick = onShowClick,
-						onBookmarkClick = { viewModel.toggleBookmark(show) }
-					)
-				}
+				Text(
+					text = stringResource(R.string.fragment_mediathek_channel),
+					style = MaterialTheme.typography.titleMedium,
+					fontWeight = FontWeight.Bold,
+					modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+				)
+			}
+			item {
+				ChannelGrid(
+					channels = broadcasters,
+					onChannelClick = { channel ->
+						val mediathekChannel = MediathekChannel.entries.find { it.apiId == channel.id }
+						if (mediathekChannel != null) {
+							viewModel.selectChannel(mediathekChannel)
+						}
+					}
+				)
 			}
 
 			// Continue Watching
@@ -119,20 +150,70 @@ fun MediathekMobileScreen(
 					)
 				}
 			}
+		}
+	}
+}
 
-			// New Shows
-			if (series.isNotEmpty()) {
-				items(series) { singleSeries ->
-					ShowRow(
-						title = singleSeries.title,
-						shows = singleSeries.shows,
-						progressMap = progressMap,
-						bookmarkedIds = bookmarkedIds,
-						viewModel = viewModel,
-						onShowClick = onShowClick
+@Composable
+fun ChannelGrid(
+	channels: List<ChannelModel>,
+	onChannelClick: (ChannelModel) -> Unit
+) {
+	LazyVerticalGrid(
+		columns = GridCells.Fixed(4),
+		contentPadding = PaddingValues(horizontal = 16.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp),
+		horizontalArrangement = Arrangement.spacedBy(16.dp),
+		modifier = Modifier.height(200.dp) // Fixed height for grid in list?
+	) {
+		items(channels) { channel ->
+			ChannelCircle(channel = channel, onClick = { onChannelClick(channel) })
+		}
+	}
+}
+
+@Composable
+fun ChannelDetailScreen(
+	onShowClick: (MediathekShow) -> Unit,
+	viewModel: MediathekUiViewModel
+) {
+	val heroShow by viewModel.heroShow.collectAsState()
+	val newShows by viewModel.channelNewShows.collectAsState()
+	val movies by viewModel.channelMovies.collectAsState()
+	val docs by viewModel.channelDocs.collectAsState()
+	val series by viewModel.channelSeries.collectAsState()
+	val bookmarkedIds by viewModel.bookmarkedIds.collectAsState()
+	val continueWatching by viewModel.continueWatching.collectAsState()
+
+	val progressMap = remember(continueWatching) {
+		continueWatching.associate { it.mediathekShow.apiId to (if (it.videoDuration > 0) it.playbackPosition.toFloat() / it.videoDuration else 0f) }
+	}
+
+	Surface(
+		modifier = Modifier.fillMaxSize(),
+		color = MaterialTheme.colorScheme.background
+	) {
+		LazyColumn(
+			contentPadding = PaddingValues(bottom = 80.dp), // Space for bottom nav
+			verticalArrangement = Arrangement.spacedBy(24.dp)
+		) {
+			// Hero Section
+			item {
+				heroShow?.let { show ->
+					val channel = remember(show.channel) { viewModel.getChannelModel(show.channel) }
+					val isBookmarked = bookmarkedIds.contains(show.apiId)
+					HeroSection(
+						show = show,
+						channel = channel,
+						isBookmarked = isBookmarked,
+						onShowClick = onShowClick,
+						onBookmarkClick = { viewModel.toggleBookmark(show) }
 					)
 				}
-			} else if (newShows.isNotEmpty()) {
+			}
+
+			// New Shows
+			if (newShows.isNotEmpty()) {
 				item {
 					ShowRow(
 						title = stringResource(R.string.activity_main_tab_mediathek),
@@ -145,22 +226,46 @@ fun MediathekMobileScreen(
 				}
 			}
 
-			// Broadcasters
-			if (broadcasters.isNotEmpty()) {
+			// Movies
+			if (movies.isNotEmpty()) {
 				item {
-					ChannelRow(
-						title = stringResource(R.string.fragment_mediathek_channel),
-						channels = broadcasters
+					ShowRow(
+						title = stringResource(R.string.fragment_mediathek_movies),
+						shows = movies,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
 					)
 				}
 			}
 
-			// Genres
-			item {
-				GenreRow(
-					title = stringResource(R.string.menu_filter),
-					genres = genres
-				)
+			// Docs
+			if (docs.isNotEmpty()) {
+				item {
+					ShowRow(
+						title = stringResource(R.string.fragment_mediathek_docs),
+						shows = docs,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
+			}
+
+			// Series
+			if (series.isNotEmpty()) {
+				items(series) { singleSeries ->
+					ShowRow(
+						title = singleSeries.title,
+						shows = singleSeries.shows,
+						progressMap = progressMap,
+						bookmarkedIds = bookmarkedIds,
+						viewModel = viewModel,
+						onShowClick = onShowClick
+					)
+				}
 			}
 		}
 	}
@@ -383,37 +488,15 @@ fun ShowCard(
 	}
 }
 
-@Composable
-fun ChannelRow(
-	title: String,
-	channels: List<ChannelModel>
-) {
-	Column(modifier = Modifier.fillMaxWidth()) {
-		Text(
-			text = title,
-			style = MaterialTheme.typography.titleMedium,
-			fontWeight = FontWeight.Bold,
-			modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-		)
-		LazyRow(
-			contentPadding = PaddingValues(horizontal = 16.dp),
-			horizontalArrangement = Arrangement.spacedBy(16.dp)
-		) {
-			items(channels) { channel ->
-				ChannelCircle(channel = channel)
-			}
-		}
-	}
-}
 
 @Composable
-fun ChannelCircle(channel: ChannelModel) {
+fun ChannelCircle(channel: ChannelModel, onClick: () -> Unit) {
 	Column(horizontalAlignment = Alignment.CenterHorizontally) {
 		Surface(
 			modifier = Modifier
 				.size(64.dp)
 				.clip(CircleShape)
-				.clickable { /* TODO: Navigate to channel */ },
+				.clickable(onClick = onClick),
 			color = Color.White,
 			shadowElevation = 4.dp
 		) {
@@ -440,40 +523,3 @@ fun ChannelCircle(channel: ChannelModel) {
 	}
 }
 
-@Composable
-fun GenreRow(
-	title: String,
-	genres: List<String>
-) {
-	Column(modifier = Modifier.fillMaxWidth()) {
-		Text(
-			text = title,
-			style = MaterialTheme.typography.titleMedium,
-			fontWeight = FontWeight.Bold,
-			modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-		)
-		LazyRow(
-			contentPadding = PaddingValues(horizontal = 16.dp),
-			horizontalArrangement = Arrangement.spacedBy(8.dp)
-		) {
-			items(genres) { genre ->
-				GenreChip(genre = genre)
-			}
-		}
-	}
-}
-
-@Composable
-fun GenreChip(genre: String) {
-	Surface(
-		shape = RoundedCornerShape(16.dp),
-		color = MaterialTheme.colorScheme.surfaceVariant,
-		modifier = Modifier.clickable { /* TODO: Navigate to genre */ }
-	) {
-		Text(
-			text = genre,
-			modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-			style = MaterialTheme.typography.labelMedium
-		)
-	}
-}

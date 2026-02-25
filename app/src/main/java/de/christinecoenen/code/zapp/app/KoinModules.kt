@@ -64,7 +64,7 @@ class KoinModules {
 
 			single { ChannelRepository(androidContext(), get(), get(), get()) }
 			single { Database.getInstance(androidContext()) }
-			single { MediathekRepository(get(), get()) }
+			single { MediathekRepository(get(), get(), get()) }
 			single { ArdMediathekMetadataFetcher(get(), get()) }
 			single { ZdfMediathekMetadataFetcher(get(), get()) }
 			single { MediathekMetadataFetcher(get(), get()) }

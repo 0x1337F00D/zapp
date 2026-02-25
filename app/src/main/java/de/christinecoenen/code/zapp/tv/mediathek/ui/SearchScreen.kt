@@ -8,12 +8,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,19 +19,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.tv.foundation.lazy.list.TvLazyColumn
+import androidx.tv.foundation.lazy.list.items
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import de.christinecoenen.code.zapp.R
-import de.christinecoenen.code.zapp.models.shows.MediathekShow
 import de.christinecoenen.code.zapp.app.mediathek.ui.MediathekUiViewModel
+import de.christinecoenen.code.zapp.app.search.SearchViewModel
+import de.christinecoenen.code.zapp.models.shows.MediathekShow
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -43,13 +41,19 @@ import org.koin.androidx.compose.koinViewModel
 fun SearchScreen(
 	onShowClick: (MediathekShow) -> Unit,
 	onBack: () -> Unit,
-	viewModel: MediathekUiViewModel = koinViewModel()
+	viewModel: SearchViewModel = koinViewModel(),
+    mediathekViewModel: MediathekUiViewModel = koinViewModel() // Needed for channel/bookmark helpers
 ) {
 	val searchQuery by viewModel.searchQuery.collectAsState()
-	val searchResults by viewModel.searchResults.collectAsState()
+	val groupedResults by viewModel.groupedMediathekResult.collectAsState()
+    val bookmarkedIds by mediathekViewModel.bookmarkedIds.collectAsState()
 	val focusRequester = remember { FocusRequester() }
 
 	BackHandler(onBack = onBack)
+
+    LaunchedEffect(Unit) {
+        viewModel.enterLastSearch()
+    }
 
 	Column(
 		modifier = Modifier
@@ -72,7 +76,7 @@ fun SearchScreen(
 		) {
 			BasicTextField(
 				value = searchQuery,
-				onValueChange = viewModel::onSearchQueryChanged,
+				onValueChange = { viewModel.setSearchQuery(it) },
 				modifier = Modifier
 					.fillMaxWidth()
 					.focusRequester(focusRequester),
@@ -97,19 +101,23 @@ fun SearchScreen(
 
 		LaunchedEffect(Unit) {
 			focusRequester.requestFocus()
+            viewModel.enterLastSearch() // Ensure we are in query mode
 		}
 
 		// Results
-		if (searchResults.isNotEmpty()) {
-			LazyVerticalGrid(
-				columns = GridCells.Adaptive(180.dp),
+		if (groupedResults.isNotEmpty()) {
+			TvLazyColumn(
 				contentPadding = PaddingValues(top = 24.dp, bottom = 24.dp),
-				verticalArrangement = Arrangement.spacedBy(16.dp),
-				horizontalArrangement = Arrangement.spacedBy(16.dp)
+				verticalArrangement = Arrangement.spacedBy(24.dp)
 			) {
-				items(searchResults) { show ->
-					val channel = remember(show.channel) { viewModel.getChannelModel(show.channel) }
-					ShowCard(show = show, channel = channel, onShowClick = onShowClick)
+				items(groupedResults) { series ->
+                    ShowRow(
+						title = series.title,
+						shows = series.shows,
+                        bookmarkedIds = bookmarkedIds,
+						viewModel = mediathekViewModel,
+						onShowClick = onShowClick
+					)
 				}
 			}
 		} else if (searchQuery.isNotEmpty()) {
