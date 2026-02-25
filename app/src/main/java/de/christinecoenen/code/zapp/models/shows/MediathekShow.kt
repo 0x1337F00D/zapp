@@ -37,6 +37,21 @@ data class MediathekShow(
 
 	@SerializedName("url_video_hd")
 	val videoUrlHd: String? = null,
+
+	@SerializedName("series_title")
+	val seriesTitle: String? = null,
+
+	@SerializedName("url_image")
+	val imageUrl: String? = null,
+
+	@SerializedName("url_image_portrait")
+	val imagePortraitUrl: String? = null,
+
+	@SerializedName("season_number")
+	val seasonNumber: Int? = null,
+
+	@SerializedName("episode_number")
+	val episodeNumber: Int? = null,
 ) : Serializable {
 
 	val formattedTimestamp: CharSequence

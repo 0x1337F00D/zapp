@@ -13,7 +13,7 @@ import de.christinecoenen.code.zapp.models.shows.PersistedMediathekShow
 
 @Database(
 	entities = [PersistedMediathekShow::class, SearchQuery::class],
-	version = 4,
+	version = 5,
 	autoMigrations = [],
 	exportSchema = true
 )
@@ -21,6 +21,16 @@ import de.christinecoenen.code.zapp.models.shows.PersistedMediathekShow
 abstract class Database : RoomDatabase() {
 
 	companion object {
+
+		private val MIGRATION_4_5 = object : Migration(4, 5) {
+			override fun migrate(db: SupportSQLiteDatabase) {
+				db.execSQL("ALTER TABLE `PersistedMediathekShow` ADD COLUMN `seriesTitle` TEXT")
+				db.execSQL("ALTER TABLE `PersistedMediathekShow` ADD COLUMN `imageUrl` TEXT")
+				db.execSQL("ALTER TABLE `PersistedMediathekShow` ADD COLUMN `imagePortraitUrl` TEXT")
+				db.execSQL("ALTER TABLE `PersistedMediathekShow` ADD COLUMN `seasonNumber` INTEGER")
+				db.execSQL("ALTER TABLE `PersistedMediathekShow` ADD COLUMN `episodeNumber` INTEGER")
+			}
+		}
 
 		private val MIGRATION_3_4 = object : Migration(3, 4) {
 			override fun migrate(db: SupportSQLiteDatabase) {
@@ -84,7 +94,8 @@ abstract class Database : RoomDatabase() {
 				.addMigrations(
 					MIGRATION_1_2,
 					MIGRATION_2_3,
-					MIGRATION_3_4
+					MIGRATION_3_4,
+					MIGRATION_4_5
 				)
 				.build()
 		}
