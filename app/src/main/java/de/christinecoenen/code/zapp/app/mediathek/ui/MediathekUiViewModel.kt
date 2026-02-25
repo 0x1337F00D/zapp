@@ -3,9 +3,11 @@ package de.christinecoenen.code.zapp.app.mediathek.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.christinecoenen.code.zapp.app.mediathek.api.IMediathekApiService
+import de.christinecoenen.code.zapp.app.mediathek.api.request.MediathekChannel
 import de.christinecoenen.code.zapp.app.mediathek.api.request.QueryRequest
 import de.christinecoenen.code.zapp.models.channels.ChannelModel
 import de.christinecoenen.code.zapp.models.shows.MediathekShow
+import de.christinecoenen.code.zapp.models.shows.PersistedMediathekShow
 import de.christinecoenen.code.zapp.repositories.ChannelRepository
 import de.christinecoenen.code.zapp.repositories.MediathekRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,11 +35,24 @@ class MediathekUiViewModel(
 	private val mediathekApiService: IMediathekApiService
 ) : ViewModel() {
 
+	private val _selectedChannel = MutableStateFlow<MediathekChannel?>(null)
+	val selectedChannel = _selectedChannel.asStateFlow()
+
 	private val _heroShow = MutableStateFlow<MediathekShow?>(null)
 	val heroShow: StateFlow<MediathekShow?> = _heroShow.asStateFlow()
 
 	private val _newShows = MutableStateFlow<List<MediathekShow>>(emptyList())
 	val newShows: StateFlow<List<MediathekShow>> = _newShows.asStateFlow()
+
+	// Channel specific content
+	private val _channelNewShows = MutableStateFlow<List<MediathekShow>>(emptyList())
+	val channelNewShows = _channelNewShows.asStateFlow()
+
+	private val _channelMovies = MutableStateFlow<List<MediathekShow>>(emptyList())
+	val channelMovies = _channelMovies.asStateFlow()
+
+	private val _channelDocs = MutableStateFlow<List<MediathekShow>>(emptyList())
+	val channelDocs = _channelDocs.asStateFlow()
 
 	val series: StateFlow<List<MediathekSeries>> = _newShows.map { shows ->
 		shows
@@ -47,12 +62,29 @@ class MediathekUiViewModel(
 			.sortedByDescending { it.shows.maxOfOrNull { show -> show.timestamp } }
 	}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+	val channelSeries: StateFlow<List<MediathekSeries>> = _channelNewShows.map { shows ->
+		shows
+			.groupBy { it.topic }
+			.filter { it.value.size > 1 }
+			.map { MediathekSeries(it.key, it.value) }
+			.sortedByDescending { it.shows.maxOfOrNull { show -> show.timestamp } }
+	}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
 	private val _broadcasters = MutableStateFlow<List<ChannelModel>>(emptyList())
 	val broadcasters: StateFlow<List<ChannelModel>> = _broadcasters.asStateFlow()
 
-	val continueWatching: StateFlow<List<MediathekShow>> = mediathekRepository
-		.getStarted(10)
+	val continueWatching: StateFlow<List<PersistedMediathekShow>> = mediathekRepository
+		.getStartedPersisted(10)
 		.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+	val bookmarkedShows: StateFlow<List<MediathekShow>> = mediathekRepository
+		.getBookmarked(20)
+		.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+	val bookmarkedIds: StateFlow<Set<String>> = mediathekRepository
+		.getBookmarkedIds()
+		.map { it.toSet() }
+		.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
 	// Static list of popular genres/topics
 	val genres = listOf(
@@ -101,6 +133,57 @@ class MediathekUiViewModel(
 
 	fun refresh() {
 		loadData()
+		if (_selectedChannel.value != null) {
+			selectChannel(_selectedChannel.value)
+		}
+	}
+
+	fun selectChannel(channel: MediathekChannel?) {
+		_selectedChannel.value = channel
+		if (channel == null) {
+			loadData()
+		} else {
+			loadChannelData(channel)
+		}
+	}
+
+	fun clearSelection() {
+		selectChannel(null)
+	}
+
+	private fun loadChannelData(channel: MediathekChannel) {
+		viewModelScope.launch {
+			try {
+				// 1. New Shows for channel
+				val newShows = mediathekRepository.listShows(channel = channel, size = 50)
+				_channelNewShows.value = newShows
+
+				// 2. Movies for channel (Duration > 60min)
+				val movies = mediathekRepository.listShows(
+					channel = channel,
+					sortBy = "duration",
+					minDuration = 3600,
+					size = 20
+				)
+				_channelMovies.value = movies
+
+				// 3. Documentaries for channel
+				val docs = mediathekRepository.listShows(
+					channel = channel,
+					topic = "Doku",
+					size = 20
+				)
+				_channelDocs.value = docs
+
+				// Pick a hero show from movies (preferred) or new shows
+				_heroShow.value = movies.firstOrNull() ?: newShows.firstOrNull {
+					(it.duration?.toIntOrNull() ?: 0) > 600
+				} ?: newShows.firstOrNull()
+
+			} catch (e: Exception) {
+				Timber.e(e, "Failed to load channel data")
+			}
+		}
 	}
 
 	private fun loadData() {
@@ -111,7 +194,7 @@ class MediathekUiViewModel(
 
 				// Load New Shows
 				val queryRequest = QueryRequest().apply {
-					size = 20
+					size = 50
 					future = false
 				}
 				val response = mediathekApiService.listShows(queryRequest)
@@ -132,5 +215,16 @@ class MediathekUiViewModel(
 	fun getChannelModel(channelId: String): ChannelModel? {
 		// Try to find by ID or name
 		return _broadcasters.value.find { it.id == channelId || it.name == channelId }
+	}
+
+	fun toggleBookmark(show: MediathekShow) {
+		viewModelScope.launch {
+			val isBookmarked = bookmarkedIds.value.contains(show.apiId)
+			if (!isBookmarked) {
+				// ensure show is persisted before bookmarking
+				mediathekRepository.persistOrUpdateShow(show).first()
+			}
+			mediathekRepository.setBookmarked(show.apiId, !isBookmarked)
+		}
 	}
 }

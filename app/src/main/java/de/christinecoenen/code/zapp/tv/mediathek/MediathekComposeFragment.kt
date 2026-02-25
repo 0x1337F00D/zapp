@@ -80,7 +80,7 @@ fun MediathekApp(
             SearchScreen(
                 onShowClick = onShowClick,
                 onBack = { isSearchVisible = false },
-                viewModel = viewModel
+                mediathekViewModel = viewModel
             )
         } else {
             MediathekScreen(
