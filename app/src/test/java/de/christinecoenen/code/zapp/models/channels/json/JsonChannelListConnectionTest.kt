@@ -4,6 +4,7 @@ import androidx.test.core.app.ApplicationProvider
 import de.christinecoenen.code.zapp.AutoCloseKoinTest
 import de.christinecoenen.code.zapp.models.channels.IChannelList
 import org.junit.Assert
+import org.junit.Ignore
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,6 +27,7 @@ class JsonChannelListConnectionTest : AutoCloseKoinTest() {
 	}
 
 	@Test
+	@Ignore("Relies on live HTTP endpoints; disable to avoid flaky CI")
 	fun channelsValid() {
 		for (channel in channelList) {
 			Assert.assertTrue("${channel.id} stream is reachable", pingURL(channel.streamUrl, 2000))

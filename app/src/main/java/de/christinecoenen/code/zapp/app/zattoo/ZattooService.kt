@@ -10,17 +10,24 @@ import de.christinecoenen.code.zapp.app.zattoo.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Cookie
-import okhttp3.CookieJar
-import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.JavaNetCookieJar
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import timber.log.Timber
+import java.net.HttpCookie
+import java.net.CookieManager
+import java.net.CookiePolicy
+import java.net.URI
 import java.util.UUID
+import kotlin.random.Random
 
-class ZattooService(private val context: Context, baseClient: OkHttpClient) {
+class ZattooService(
+    private val context: Context,
+    baseClient: OkHttpClient,
+    api: ZattooApi? = null
+) {
 
     private val settingsRepository = SettingsRepository(context)
     private val httpClient: OkHttpClient
@@ -28,34 +35,36 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
 
     private var powerGuideHash: String? = null
     private var appToken: String? = null
+    private var channelCache: List<ZattooChannel> = emptyList()
 
-    private val cookieStore = HashMap<String, List<Cookie>>()
+    private val cookieManager = CookieManager().apply {
+        setCookiePolicy(CookiePolicy.ACCEPT_ALL)
+    }
 
     init {
          httpClient = baseClient.newBuilder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+                    .header(
+                        "User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0"
+                    )
                     .build()
                 chain.proceed(request)
             }
-            .cookieJar(object : CookieJar {
-                override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                    cookieStore[url.host] = cookies
-                }
-
-                override fun loadForRequest(url: HttpUrl): List<Cookie> {
-                    return cookieStore[url.host] ?: ArrayList()
-                }
-            })
+            .cookieJar(JavaNetCookieJar(cookieManager))
             .build()
 
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://zattoo.com/")
-            .client(httpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-        api = retrofit.create(ZattooApi::class.java)
+        if (api != null) {
+            this.api = api
+        } else {
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://zattoo.com/")
+                .client(httpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            this.api = retrofit.create(ZattooApi::class.java)
+        }
     }
 
     fun logout() {
@@ -70,6 +79,7 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
 
             val response = api.getChannels(hash)
             if (response.success) {
+                channelCache = response.channels
                 response.channels
             } else {
                 emptyList()
@@ -82,12 +92,19 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
 
     suspend fun getStreamUrl(cid: String): String = withContext(Dispatchers.IO) {
         ensureLogin()
-        val response = api.watch(ZattooWatchBody(cid = cid))
-        if (response.success && response.stream != null) {
-            response.stream.url
-        } else {
-            throw Exception("Could not get stream URL for $cid")
-        }
+        // pick a quality based on cached channels; fall back to letting server decide
+        val (quality, streamType) = pickQuality(cid)
+        val response = api.watchLive(
+            cid = cid,
+            quality = quality,
+            streamType = streamType,
+            format = "json",
+            timeshift = 10800,
+            httpsWatchUrls = true
+        )
+        val stream = response.stream
+        val chosenUrl = stream?.watchUrls?.firstOrNull()?.url ?: stream?.url
+        return@withContext chosenUrl ?: throw Exception("Could not get stream URL for $cid")
     }
 
     private suspend fun ensureLogin() {
@@ -104,48 +121,88 @@ class ZattooService(private val context: Context, baseClient: OkHttpClient) {
             appToken = fetchAppToken()
         }
 
-        val uuid = UUID.randomUUID().toString()
-
+        val uuid = generateUuid()
         // Ensure UUID cookie is set
-        val url = "https://zattoo.com/".toHttpUrl()
         val cookie = Cookie.Builder()
             .domain("zattoo.com")
             .path("/")
             .name("uuid")
             .value(uuid)
             .build()
-        cookieStore["zattoo.com"] = listOf(cookie)
+        val httpCookie = HttpCookie(cookie.name, cookie.value).apply {
+            domain = cookie.domain
+            path = cookie.path
+        }
+        cookieManager.cookieStore.add(URI.create("https://zattoo.com/"), httpCookie)
 
-        val helloResponse = api.hello(ZattooHelloBody(uuid = uuid, clientAppToken = appToken!!))
-        if (!helloResponse.success) throw Exception("Hello failed")
+        val helloResponse = api.hello(
+            uuid = uuid,
+            lang = "de",
+            clientAppToken = appToken!!,
+            appVersion = "3.2038.0",
+            format = "json"
+        )
+
+        if (helloResponse.success == false) throw Exception("Hello failed")
 
         val sessionResponse = api.getSession()
-        if (!sessionResponse.success) throw Exception("Session check failed")
+
+        if (sessionResponse.success == false) throw Exception("Session check failed")
 
         // If not logged in, try login
-        if (sessionResponse.session?.account == null) {
-             val loginResponse = api.login(ZattooLoginBody(login = username, password = password))
-             if (loginResponse.success && loginResponse.session != null) {
-                 powerGuideHash = loginResponse.session.powerGuideHash
+        if (sessionResponse.account == null || sessionResponse.account.isJsonNull) {
+             val loginResponse = api.login(
+                 login = username,
+                 password = password,
+                 format = "json"
+             )
+
+             if (loginResponse.success != false) {
+                 powerGuideHash = loginResponse.powerGuideHash
              } else {
                  throw Exception("Login failed")
              }
         } else {
-             powerGuideHash = sessionResponse.session?.powerGuideHash
+             powerGuideHash = sessionResponse.powerGuideHash
         }
     }
 
-    private fun fetchAppToken(): String {
-        val uuid = UUID.randomUUID().toString()
-        val request = Request.Builder().url("https://zattoo.com/client/token.json?id=$uuid").build()
-        val response = httpClient.newCall(request).execute()
-        val json = response.body?.string() ?: throw Exception("Failed to load Zattoo token")
+    private fun pickQuality(cid: String): Pair<String?, String> {
+        val channel = channelCache.firstOrNull { it.cid == cid }
+        val quality = channel?.qualities?.firstOrNull { it.availability == "available" }
+        val level = quality?.level
+        val streamType = if (quality?.drmRequired == true) "dash_widevine" else "dash"
+        return Pair(level, streamType)
+    }
 
-        val jsonObject = Gson().fromJson(json, JsonObject::class.java)
-        if (jsonObject.has("session_token")) {
-            return jsonObject.get("session_token").asString
-        } else {
-            throw Exception("App Token not found")
+    private fun fetchAppToken(): String {
+        // Try the documented token endpoint first, then fall back to /token.json
+        val uuid = UUID.randomUUID().toString()
+        val primary = Request.Builder().url("https://zattoo.com/client/token.json?id=$uuid").build()
+        httpClient.newCall(primary).execute().use { response ->
+            val body = response.body?.string()
+            if (!body.isNullOrEmpty()) {
+                val jsonObject = Gson().fromJson(body, JsonObject::class.java)
+                if (jsonObject.has("session_token")) {
+                    return jsonObject.get("session_token").asString
+                }
+            }
         }
+
+        val fallback = Request.Builder().url("https://zattoo.com/token.json").build()
+        httpClient.newCall(fallback).execute().use { response ->
+            val body = response.body?.string() ?: throw Exception("Failed to load Zattoo token")
+            val jsonObject = Gson().fromJson(body, JsonObject::class.java)
+            if (jsonObject.has("session_token")) {
+                return jsonObject.get("session_token").asString
+            }
+        }
+
+        throw Exception("App Token not found")
+    }
+
+    private fun generateUuid(): String {
+        val chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
+        return (1..21).map { chars[Random.nextInt(chars.length)] }.joinToString("")
     }
 }
